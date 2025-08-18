@@ -1,0 +1,2 @@
+# Ignore service account credentials
+backend/firebase-service-account.json

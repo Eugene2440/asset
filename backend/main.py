@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
@@ -16,14 +19,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-@app.on_event("startup")sync def startup_event():
+@app.on_event("startup")
+async def startup_event():
     initialize_firebase()
 
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React development server
+    allow_origins=settings.cors_origins_list,  # React development server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

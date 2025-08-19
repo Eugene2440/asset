@@ -41,7 +41,7 @@ async def get_dashboard_stats(
     current_user: dict = Depends(get_current_user)
 ):
     # Only admins can view analytics
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Inefficient for large datasets. Consider using Cloud Functions for aggregation.
@@ -66,7 +66,7 @@ async def get_assets_by_status(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     assets = db.collection('assets').stream()
@@ -81,7 +81,7 @@ async def get_assets_by_category(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     assets = db.collection('assets').stream()
@@ -96,7 +96,7 @@ async def get_assets_by_location(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     locations = db.collection('locations').stream()
@@ -124,7 +124,7 @@ async def get_monthly_transfers(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     twelve_months_ago = datetime.utcnow() - timedelta(days=365)
@@ -151,7 +151,7 @@ async def get_assets_with_expiring_warranty(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     expiry_date = datetime.utcnow() + timedelta(days=days)
@@ -174,7 +174,7 @@ async def get_user_asset_allocation(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     users = db.collection('users').where('is_active', '==', True).stream()

@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Firebase
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: Optional[str] = None
 
+    # Database
+    DATABASE_URL: str
+
     # CORS
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
 

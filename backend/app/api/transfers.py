@@ -21,19 +21,19 @@ class TransferUpdate(BaseModel):
 
 class TransferResponse(BaseModel):
     id: str
-    status: str
-    reason: str
+    status: Optional[str]
+    reason: Optional[str]
     notes: Optional[str]
-    requested_at: datetime
+    requested_at: Optional[datetime]
     approved_at: Optional[datetime]
     completed_at: Optional[datetime]
-    asset_id: str
-    requester_id: str
-    approver_id: Optional[str]
-    from_user_id: Optional[str]
-    to_user_id: Optional[str]
-    from_location_id: Optional[str]
-    to_location_id: Optional[str]
+    asset: Optional[dict]
+    requester: Optional[dict]
+    approver: Optional[dict]
+    from_user: Optional[dict]
+    to_user: Optional[dict]
+    from_location: Optional[dict]
+    to_location: Optional[dict]
 
 @router.get("/", response_model=List[TransferResponse])
 async def get_transfers(
@@ -47,7 +47,6 @@ async def get_transfers(
     transfers_ref = db.collection('transfers')
     query = transfers_ref
 
-    # Regular users can only see their own transfer requests
     if current_user.get("role") != "ADMIN":
         query = query.where('requester_id', '==', current_user.get("uid"))
     
@@ -56,13 +55,95 @@ async def get_transfers(
     if asset_id:
         query = query.where('asset_id', '==', asset_id)
     
-    all_transfers = query.stream()
-    
+    all_transfers_docs = list(query.stream())
+
+    # Collect all unique document references
+    asset_refs = set()
+    user_refs = set()
+    location_refs = set()
+
+    for doc in all_transfers_docs:
+        transfer = doc.to_dict()
+        if transfer.get('asset_id'):
+            asset_refs.add(db.collection('assets').document(transfer['asset_id']))
+        if transfer.get('requester_id'):
+            user_refs.add(db.collection('users').document(transfer['requester_id']))
+        if transfer.get('approver_id'):
+            user_refs.add(db.collection('users').document(transfer['approver_id']))
+        if transfer.get('from_user_id'):
+            user_refs.add(db.collection('users').document(transfer['from_user_id']))
+        if transfer.get('to_user_id'):
+            user_refs.add(db.collection('users').document(transfer['to_user_id']))
+        if transfer.get('from_location_id'):
+            location_refs.add(db.collection('locations').document(transfer['from_location_id']))
+        if transfer.get('to_location_id'):
+            location_refs.add(db.collection('locations').document(transfer['to_location_id']))
+
+    # Batch fetch all referenced documents
+    all_refs = list(asset_refs | user_refs | location_refs)
+    valid_refs = [ref for ref in all_refs if ref is not None]
+    referenced_docs_raw = db.get_all(valid_refs)
+    referenced_docs_map = {doc.reference: doc.to_dict() for doc in referenced_docs_raw if doc.exists}
+
     transfers_list = []
-    for transfer in all_transfers:
-        transfer_dict = transfer.to_dict()
-        transfer_dict['id'] = transfer.id
-        transfers_list.append(transfer_dict)
+    for doc in all_transfers_docs:
+        transfer_data = doc.to_dict()
+        
+        # Initialize all fields to ensure they exist
+        response_item = {
+            "id": doc.id,
+            "status": transfer_data.get("status"),
+            "reason": transfer_data.get("reason"),
+            "notes": transfer_data.get("notes"),
+            "requested_at": transfer_data.get("requested_at"),
+            "approved_at": transfer_data.get("approved_at"),
+            "completed_at": transfer_data.get("completed_at"),
+            "asset": None,
+            "requester": None,
+            "approver": None,
+            "from_user": None,
+            "to_user": None,
+            "from_location": None,
+            "to_location": None,
+        }
+
+        # Resolve references from the map
+        if transfer_data.get('asset_id'):
+            asset_ref = db.collection('assets').document(transfer_data['asset_id'])
+            if asset_ref in referenced_docs_map:
+                response_item['asset'] = referenced_docs_map[asset_ref]
+
+        if transfer_data.get('requester_id'):
+            user_ref = db.collection('users').document(transfer_data['requester_id'])
+            if user_ref in referenced_docs_map:
+                response_item['requester'] = referenced_docs_map[user_ref]
+
+        if transfer_data.get('approver_id'):
+            user_ref = db.collection('users').document(transfer_data['approver_id'])
+            if user_ref in referenced_docs_map:
+                response_item['approver'] = referenced_docs_map[user_ref]
+
+        if transfer_data.get('from_user_id'):
+            user_ref = db.collection('users').document(transfer_data['from_user_id'])
+            if user_ref in referenced_docs_map:
+                response_item['from_user'] = referenced_docs_map[user_ref]
+
+        if transfer_data.get('to_user_id'):
+            user_ref = db.collection('users').document(transfer_data['to_user_id'])
+            if user_ref in referenced_docs_map:
+                response_item['to_user'] = referenced_docs_map[user_ref]
+
+        if transfer_data.get('from_location_id'):
+            location_ref = db.collection('locations').document(transfer_data['from_location_id'])
+            if location_ref in referenced_docs_map:
+                response_item['from_location'] = referenced_docs_map[location_ref]
+
+        if transfer_data.get('to_location_id'):
+            location_ref = db.collection('locations').document(transfer_data['to_location_id'])
+            if location_ref in referenced_docs_map:
+                response_item['to_location'] = referenced_docs_map[location_ref]
+
+        transfers_list.append(response_item)
 
     return transfers_list[skip:skip+limit]
 

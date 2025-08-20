@@ -102,7 +102,7 @@ def import_data_to_firestore(js_filepath):
             asset_doc = assets_ref.document(row['Serial Number'])
 
             asset_data = {
-                'tag_no': row['Tag No'],
+                'asset_tag': row['Tag No'],
                 'serial_number': row['Serial Number'],
                 'os_version': row['OS Version'],
                 'asset_model': model_ref,

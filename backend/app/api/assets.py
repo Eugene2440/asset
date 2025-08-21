@@ -4,8 +4,80 @@ from app.core.firebase import get_firestore_db
 from app.api.auth import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
+from google.cloud.firestore_v1.document import DocumentReference
 
 router = APIRouter()
+
+def convert_doc_refs(data):
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = convert_doc_refs(value)
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            data[i] = convert_doc_refs(item)
+    elif isinstance(data, DocumentReference):
+        return data.id
+    return data
+
+async def _get_populated_assets(asset_docs: list, db) -> list:
+    location_refs = set()
+    user_refs = set()
+    model_refs = set()
+    status_refs = set()
+
+    for doc in asset_docs:
+        asset = doc.to_dict()
+        if asset.get('location') and isinstance(asset.get('location'), DocumentReference):
+            location_refs.add(asset['location'])
+        if asset.get('user') and isinstance(asset.get('user'), DocumentReference):
+            user_refs.add(asset['user'])
+        if asset.get('asset_model') and isinstance(asset.get('asset_model'), DocumentReference):
+            model_refs.add(asset['asset_model'])
+        if asset.get('asset_status') and isinstance(asset.get('asset_status'), DocumentReference):
+            status_refs.add(asset['asset_status'])
+
+    all_refs = list(location_refs | user_refs | model_refs | status_refs)
+    valid_refs = [ref for ref in all_refs if ref is not None]
+    if valid_refs:
+        referenced_docs_raw = db.get_all(valid_refs)
+        referenced_docs_map = {doc.reference.path: convert_doc_refs(doc.to_dict()) for doc in referenced_docs_raw if doc.exists}
+    else:
+        referenced_docs_map = {}
+
+    assets_list = []
+    for doc in asset_docs:
+        asset = convert_doc_refs(doc.to_dict())
+        asset['id'] = doc.id
+
+        if asset.get('location') and isinstance(asset.get('location'), str):
+            location_ref_path = db.collection('locations').document(asset['location']).path
+            if location_ref_path in referenced_docs_map:
+                asset['location'] = referenced_docs_map[location_ref_path]
+        
+        if asset.get('user') and isinstance(asset.get('user'), str):
+            user_ref_path = db.collection('users').document(asset['user']).path
+            if user_ref_path in referenced_docs_map:
+                asset['assigned_user'] = referenced_docs_map[user_ref_path]
+                del asset['user']
+
+        if asset.get('asset_model') and isinstance(asset.get('asset_model'), str):
+            model_ref_path = db.collection('asset_models').document(asset['asset_model']).path
+            if model_ref_path in referenced_docs_map:
+                model_data = referenced_docs_map[model_ref_path]
+                asset['name'] = model_data.get('asset_type')
+                asset['category'] = model_data.get('asset_type')
+                asset['brand'] = model_data.get('asset_make')
+                asset['model'] = model_data.get('asset_model')
+
+        if asset.get('asset_status') and isinstance(asset.get('asset_status'), str):
+            status_ref_path = db.collection('asset_statuses').document(asset['asset_status']).path
+            if status_ref_path in referenced_docs_map:
+                status_data = referenced_docs_map[status_ref_path]
+                asset['status'] = status_data.get('status_name')
+
+        assets_list.append(asset)
+    
+    return assets_list
 
 # Pydantic models
 class AssetCreate(BaseModel):
@@ -102,9 +174,10 @@ async def get_asset(
     if not asset.exists:
         raise HTTPException(status_code=404, detail="Asset not found")
     
-    response = asset.to_dict()
-    response['id'] = asset.id
-    return response
+    populated_asset = await _get_populated_assets([asset], db)
+    if not populated_asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return populated_asset[0]
 
 @router.get("/", response_model=PaginatedAssetResponse)
 async def get_assets(
@@ -133,57 +206,8 @@ async def get_assets(
         query = query.where('location_id', '==', location_id)
 
     all_assets_docs = list(query.stream())
-
-    # Collect all unique document references
-    location_refs = set()
-    user_refs = set()
-    model_refs = set()
-    status_refs = set()
-
-    for doc in all_assets_docs:
-        asset = doc.to_dict()
-        if asset.get('location'):
-            location_refs.add(asset['location'])
-        if asset.get('user'):
-            user_refs.add(asset['user'])
-        if asset.get('asset_model'):
-            model_refs.add(asset['asset_model'])
-        if asset.get('asset_status'):
-            status_refs.add(asset['asset_status'])
-
-    # Batch fetch all referenced documents
-    all_refs = list(location_refs | user_refs | model_refs | status_refs)
-    valid_refs = [ref for ref in all_refs if ref is not None]
-    referenced_docs_raw = db.get_all(valid_refs)
-    referenced_docs_map = {doc.reference: doc.to_dict() for doc in referenced_docs_raw if doc.exists}
-
-    assets_list = []
-    for doc in all_assets_docs:
-        asset = doc.to_dict()
-        asset['id'] = doc.id
-
-        # Resolve references from the map
-        if asset.get('location') in referenced_docs_map:
-            asset['location'] = referenced_docs_map[asset['location']]
-        
-        if asset.get('user') in referenced_docs_map:
-            asset['assigned_user'] = referenced_docs_map[asset['user']]
-
-        if asset.get('asset_model') in referenced_docs_map:
-            model_data = referenced_docs_map[asset['asset_model']]
-            asset['name'] = model_data.get('asset_type')
-            asset['category'] = model_data.get('asset_type')
-            asset['brand'] = model_data.get('asset_make')
-            asset['model'] = model_data.get('asset_model')
-
-        if asset.get('asset_status') in referenced_docs_map:
-            status_data = referenced_docs_map[asset['asset_status']]
-            asset['status'] = status_data.get('status_name')
-
-        # Map database field names to response model field names
-        asset['asset_tag'] = asset.get('tag_no')
-
-        assets_list.append(asset)
+    
+    assets_list = await _get_populated_assets(all_assets_docs, db)
 
     if search_query:
         search_query_lower = search_query.lower()

@@ -11,6 +11,7 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  Autocomplete,
 } from '@mui/material';
 import { usersAPI, locationsAPI, assetsAPI } from '../../services/api.ts';
 import { User, Location, Asset } from '../../types/index.ts';
@@ -20,15 +21,18 @@ interface TransferAssetModalProps {
   onClose: () => void;
   asset: Asset | null;
   onTransferSuccess: () => void;
+  currentUser: User | null;
 }
 
-const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, asset, onTransferSuccess }) => {
+const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, asset, onTransferSuccess, currentUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [toUserId, setToUserId] = useState('');
+  const [toUserId, setToUserId] = useState<string | null>('');
   const [toLocationId, setToLocationId] = useState('');
   const [reason, setReason] = useState('');
-  const [notes, setNotes] = useState('');
+  const [damageReport, setDamageReport] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +55,12 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
     }
   }, [open]);
 
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setPhoto(event.target.files[0]);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!asset) return;
 
@@ -60,10 +70,13 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
     try {
       await assetsAPI.createTransfer({
         asset_id: asset.id,
-        to_user_id: toUserId || null,
+        to_user_id: toUserId,
         to_location_id: toLocationId || null,
         reason,
-        notes,
+        damage_report: damageReport,
+        assigned_to_id: assignedTo,
+        // photo_url will be handled by the backend, for now, we send the name
+        photo_url: photo ? photo.name : null,
       });
       onTransferSuccess();
       onClose();
@@ -88,42 +101,36 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2">Current User</Typography>
-                <Typography variant="subtitle1">{asset.assigned_user?.full_name || 'N/A'}</Typography>
+                <Typography variant="subtitle1">{asset.assigned_user?.name || 'N/A'}</Typography>
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2">Current Location</Typography>
                 <Typography variant="subtitle1">{asset.location?.name || 'N/A'}</Typography>
               </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2">Requester</Typography>
+                <Typography variant="subtitle1">{currentUser?.name || 'N/A'}</Typography>
+              </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                select
-                label="New User"
-                value={toUserId}
-                onChange={(e) => setToUserId(e.target.value)}
+              <Autocomplete
+                options={users}
+                getOptionLabel={(option) => option.name || ''}
+                onChange={(event, newValue) => {
+                  setToUserId(newValue ? newValue.id : null);
+                }}
+                renderInput={(params) => <TextField {...params} label="New User" />}
                 fullWidth
-              >
-                <MenuItem value=""><em>None</em></MenuItem>
-                {users.map((user) => (
-                  <MenuItem key={user.id} value={user.id}>
-                    {user.full_name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="New Location"
-                value={toLocationId}
-                onChange={(e) => setToLocationId(e.target.value)}
+              />
+              <Autocomplete
+                options={locations}
+                getOptionLabel={(option) => option.name || ''}
+                onChange={(event, newValue) => {
+                  setToLocationId(newValue ? newValue.id : '');
+                }}
+                renderInput={(params) => <TextField {...params} label="New Location" />}
                 fullWidth
-              >
-                <MenuItem value=""><em>None</em></MenuItem>
-                {locations.map((location) => (
-                  <MenuItem key={location.id} value={location.id}>
-                    {location.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              />
             </Box>
             <TextField
               label="Reason for Transfer"
@@ -133,12 +140,26 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
               required
             />
             <TextField
-              label="Notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              label="Damage Report"
+              value={damageReport}
+              onChange={(e) => setDamageReport(e.target.value)}
               fullWidth
               multiline
               rows={3}
+            />
+            
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Button variant="contained" component="label">
+                Upload Photo
+                <input type="file" hidden onChange={handlePhotoChange} />
+              </Button>
+              {photo && <Typography variant="body2">{photo.name}</Typography>}
+            </Box>
+             <TextField
+              label="Assigned To"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              fullWidth
             />
           </Box>
         )}

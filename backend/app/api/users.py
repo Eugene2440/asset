@@ -16,12 +16,12 @@ class UserUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    username: str
-    email: str
-    full_name: str
-    role: str
-    is_active: bool
-    created_at: datetime
+    name: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    created_at: Optional[datetime] = None
 
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
@@ -31,9 +31,7 @@ async def get_users(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    # Only admins can list all users
-    if current_user.get("role") != "ADMIN":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    
     
     users_ref = db.collection('users')
     query = users_ref

@@ -10,20 +10,16 @@ router = APIRouter()
 # Pydantic models
 class LocationCreate(BaseModel):
     name: str
-    address: Optional[str] = None
-    description: Optional[str] = None
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
-    address: Optional[str] = None
-    description: Optional[str] = None
 
 class LocationResponse(BaseModel):
     id: str
     name: str
-    address: Optional[str]
-    description: Optional[str]
-    created_at: datetime
+    address: Optional[str] = None
+    description: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 @router.get("/", response_model=List[LocationResponse])
 async def get_locations(

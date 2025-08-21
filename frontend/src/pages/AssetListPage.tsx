@@ -28,9 +28,11 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
 import { assetsAPI } from '../services/api.ts';
 import { Asset } from '../types';
+import { useAuth } from '../contexts/AuthContext.tsx';
 import TransferAssetModal from '../components/modals/TransferAssetModal.tsx';
 
 const AssetListPage = () => {
+  const { user } = useAuth();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +105,6 @@ const AssetListPage = () => {
   const handleTransfer = () => {
     if (!selectedAsset) return;
     setTransferModalOpen(true);
-    handleMenuClose();
   };
 
   const handleTransferSuccess = () => {
@@ -232,9 +233,13 @@ const AssetListPage = () => {
       {selectedAsset && (
         <TransferAssetModal
           open={isTransferModalOpen}
-          onClose={() => setTransferModalOpen(false)}
+          onClose={() => {
+            setTransferModalOpen(false);
+            handleMenuClose();
+          }}
           asset={selectedAsset}
           onTransferSuccess={handleTransferSuccess}
+          currentUser={user}
         />
       )}
       <Snackbar

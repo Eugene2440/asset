@@ -32,17 +32,17 @@ export enum UserRole {
 }
 
 export interface User {
-  id: number;
-  username: string;
-  email: string;
-  full_name: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
+  id: string;
+  name: string;
+  username?: string;
+  email?: string;
+  role?: UserRole;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 export interface Asset {
-  id: number;
+  id: string;
   asset_tag: string;
   name: string;
   category: AssetCategory;
@@ -54,8 +54,8 @@ export interface Asset {
   warranty_expiry?: string;
   description?: string;
   specifications?: string;
-  assigned_user_id?: number;
-  location_id?: number;
+  assigned_user_id?: string;
+  location_id?: string;
   created_at: string;
   updated_at: string;
   assigned_user?: User;
@@ -63,28 +63,28 @@ export interface Asset {
 }
 
 export interface Location {
-  id: number;
+  id: string;
   name: string;
   address?: string;
   description?: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Transfer {
-  id: number;
+  id: string;
   status: TransferStatus;
   reason: string;
   notes?: string;
   requested_at: string;
   approved_at?: string;
   completed_at?: string;
-  asset_id: number;
-  requester_id: number;
-  approver_id?: number;
-  from_user_id?: number;
-  to_user_id?: number;
-  from_location_id?: number;
-  to_location_id?: number;
+  asset_id: string;
+  requester_id: string;
+  approver_id?: string;
+  from_user_id?: string;
+  to_user_id?: string;
+  from_location_id?: string;
+  to_location_id?: string;
 }
 
 export interface DashboardStats {
@@ -107,7 +107,7 @@ export interface AssetCategoryReport {
 }
 
 export interface LocationAssetReport {
-  location_id: number;
+  location_id: string;
   location_name: string;
   asset_count: number;
 }
@@ -135,16 +135,16 @@ export interface CreateAssetRequest {
   warranty_expiry?: string;
   description?: string;
   specifications?: string;
-  assigned_user_id?: number;
-  location_id?: number;
+  assigned_user_id?: string;
+  location_id?: string;
 }
 
 export interface CreateTransferRequest {
-  asset_id: number;
+  asset_id: string;
   reason: string;
   notes?: string;
-  to_user_id?: number;
-  to_location_id?: number;
+  to_user_id?: string;
+  to_location_id?: string;
 }
 
 export interface UpdateTransferRequest {

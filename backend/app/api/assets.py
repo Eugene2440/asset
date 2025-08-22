@@ -31,6 +31,7 @@ async def _get_populated_assets(asset_docs: list, db) -> list:
             location_refs.add(asset['location'])
         if asset.get('user') and isinstance(asset.get('user'), DocumentReference):
             user_refs.add(asset['user'])
+        
         if asset.get('asset_model') and isinstance(asset.get('asset_model'), DocumentReference):
             model_refs.add(asset['asset_model'])
         if asset.get('asset_status') and isinstance(asset.get('asset_status'), DocumentReference):
@@ -58,15 +59,13 @@ async def _get_populated_assets(asset_docs: list, db) -> list:
             user_ref_path = db.collection('users').document(asset['user']).path
             if user_ref_path in referenced_docs_map:
                 asset['assigned_user'] = referenced_docs_map[user_ref_path]
-                del asset['user']
 
         if asset.get('asset_model') and isinstance(asset.get('asset_model'), str):
             model_ref_path = db.collection('asset_models').document(asset['asset_model']).path
             if model_ref_path in referenced_docs_map:
                 model_data = referenced_docs_map[model_ref_path]
-                asset['name'] = model_data.get('asset_type')
-                asset['category'] = model_data.get('asset_type')
-                asset['brand'] = model_data.get('asset_make')
+                asset['asset_type'] = model_data.get('asset_type')
+                asset['asset_make'] = model_data.get('asset_make')
                 asset['model'] = model_data.get('asset_model')
 
         if asset.get('asset_status') and isinstance(asset.get('asset_status'), str):
@@ -81,54 +80,37 @@ async def _get_populated_assets(asset_docs: list, db) -> list:
 
 # Pydantic models
 class AssetCreate(BaseModel):
-    asset_tag: str
-    name: str
-    category: str
-    brand: Optional[str] = None
-    model: Optional[str] = None
-    serial_number: Optional[str] = None
-    status: str = "ACTIVE"
-    purchase_date: Optional[datetime] = None
-    warranty_expiry: Optional[datetime] = None
-    description: Optional[str] = None
-    specifications: Optional[str] = None
-    assigned_user_id: Optional[str] = None
-    location_id: Optional[str] = None
+    asset_model: str
+    asset_status: str
+    location: str
+    serial_number: str
+    tag_no: str
+    user: str
 
 class AssetUpdate(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    brand: Optional[str] = None
-    model: Optional[str] = None
+    asset_model: Optional[str] = None
+    asset_status: Optional[str] = None
+    location: Optional[str] = None
     serial_number: Optional[str] = None
-    status: Optional[str] = None
-    purchase_date: Optional[datetime] = None
-    warranty_expiry: Optional[datetime] = None
-    description: Optional[str] = None
-    specifications: Optional[str] = None
-    assigned_user_id: Optional[str] = None
-    location_id: Optional[str] = None
+    tag_no: Optional[str] = None
+    user: Optional[str] = None
 
 class AssetResponse(BaseModel):
     id: str
-    asset_tag: Optional[str] = None
-    name: Optional[str] = None
-    category: Optional[str] = None
-    brand: Optional[str] = None
+    asset_model: Optional[str] = None
+    asset_type: Optional[str] = None
+    asset_make: Optional[str] = None
     model: Optional[str] = None
-    serial_number: Optional[str] = None
-    os_version: Optional[str] = None
+    asset_status: Optional[str] = None
     status: Optional[str] = None
-    purchase_date: Optional[datetime] = None
-    warranty_expiry: Optional[datetime] = None
-    description: Optional[str] = None
-    specifications: Optional[str] = None
-    assigned_user_id: Optional[str] = None
-    location_id: Optional[str] = None
+    location: Optional[dict] = None
+    serial_number: Optional[str] = None
+    tag_no: Optional[str] = None
+    assigned_user: Optional[dict] = None
+    user: Optional[str] = None
+    os_version: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    assigned_user: Optional[dict] = None
-    location: Optional[dict] = None
 
 class PaginatedAssetResponse(BaseModel):
     total_count: int

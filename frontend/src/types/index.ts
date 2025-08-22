@@ -43,23 +43,23 @@ export interface User {
 
 export interface Asset {
   id: string;
-  asset_tag: string;
-  name: string;
-  category: AssetCategory;
-  brand?: string;
+  asset_model?: string;
+  asset_type?: string;
+  asset_make?: string;
   model?: string;
-  serial_number?: string;
-  status: AssetStatus;
-  purchase_date?: string;
-  warranty_expiry?: string;
-  description?: string;
-  specifications?: string;
-  assigned_user_id?: string;
-  location_id?: string;
-  created_at: string;
-  updated_at: string;
-  assigned_user?: User;
+  asset_status?: string;
+  status?: string;
   location?: Location;
+  serial_number?: string;
+  tag_no?: string;
+  assigned_user?: User;
+  user?: string;
+  os_version?: string;
+  created_at?: string;
+  updated_at?: string;
+  asset_tag?: string;
+  name?: string;
+  brand?: string;
 }
 
 export interface Location {
@@ -72,19 +72,27 @@ export interface Location {
 
 export interface Transfer {
   id: string;
-  status: TransferStatus;
-  reason: string;
-  notes?: string;
-  requested_at: string;
+  asset_id?: string;
+  assigned_to_id?: string;
+  damage_report?: string;
+  from_location_id?: string;
+  from_user_id?: string;
+  photo_url?: string;
+  reason?: string;
+  requested_at?: string;
+  requester_id?: string;
+  status?: string;
+  to_location_id?: string;
+  to_user_id?: string;
+  asset?: Asset;
+  requester?: User;
+  approver?: User;
+  from_user?: User;
+  to_user?: User;
+  from_location?: Location;
+  to_location?: Location;
   approved_at?: string;
   completed_at?: string;
-  asset_id: string;
-  requester_id: string;
-  approver_id?: string;
-  from_user_id?: string;
-  to_user_id?: string;
-  from_location_id?: string;
-  to_location_id?: string;
 }
 
 export interface DashboardStats {

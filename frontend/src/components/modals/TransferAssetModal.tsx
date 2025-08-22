@@ -116,6 +116,11 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
               <Autocomplete
                 options={users}
                 getOptionLabel={(option) => option.name || ''}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.name || 'Unnamed User'}
+                  </li>
+                )}
                 onChange={(event, newValue) => {
                   setToUserId(newValue ? newValue.id : null);
                 }}
@@ -125,6 +130,11 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
               <Autocomplete
                 options={locations}
                 getOptionLabel={(option) => option.name || ''}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.name || 'Unnamed Location'}
+                  </li>
+                )}
                 onChange={(event, newValue) => {
                   setToLocationId(newValue ? newValue.id : '');
                 }}

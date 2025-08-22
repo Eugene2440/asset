@@ -26,8 +26,3 @@ firebase-service-account.json
 # OS
 .DS_Store
 
-# Media
-*.png
-*.jpg
-*.jpeg
-*.gif

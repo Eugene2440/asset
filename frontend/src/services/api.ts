@@ -62,6 +62,10 @@ export const assetsAPI = {
     const response = await apiClient.post('/api/transfers/', transferData);
     return response.data;
   },
+  updateTransfer: async (id: string, transferData: any): Promise<any> => {
+    const response = await apiClient.put(`/api/transfers/${id}`, transferData);
+    return response.data;
+  },
 };
 
 export const usersAPI = {

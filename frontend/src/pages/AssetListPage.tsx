@@ -199,11 +199,11 @@ const AssetListPage = () => {
                 key={asset.id}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
-                <TableCell component="th" scope="row">{asset.asset_tag}</TableCell>
+                <TableCell component="th" scope="row">{asset.tag_no}</TableCell>
                 <TableCell>{asset.serial_number}</TableCell>
                 <TableCell>{asset.os_version}</TableCell>
-                <TableCell>{asset.name}</TableCell>
-                <TableCell>{asset.brand}</TableCell>
+                <TableCell>{asset.asset_type}</TableCell>
+                <TableCell>{asset.asset_make}</TableCell>
                 <TableCell>{asset.model}</TableCell>
                 <TableCell>{asset.location?.name}</TableCell>
                 <TableCell>{asset.assigned_user?.name}</TableCell>

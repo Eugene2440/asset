@@ -32,21 +32,31 @@ class TransferCreate(BaseModel):
 
 class TransferUpdate(BaseModel):
     status: str
+    rejection_reason: Optional[str] = None
 
 class TransferResponse(BaseModel):
     id: str
-    status: Optional[str]
-    reason: Optional[str]
-    requested_at: Optional[datetime]
-    approved_at: Optional[datetime]
-    completed_at: Optional[datetime]
-    asset: Optional[dict]
-    requester: Optional[dict]
-    approver: Optional[dict]
-    from_user: Optional[dict]
-    to_user: Optional[dict]
-    from_location: Optional[dict]
-    to_location: Optional[dict]
+    asset_id: Optional[str] = None
+    assigned_to_id: Optional[str] = None
+    damage_report: Optional[str] = None
+    from_location_id: Optional[str] = None
+    from_user_id: Optional[str] = None
+    photo_url: Optional[str] = None
+    reason: Optional[str] = None
+    requested_at: Optional[datetime] = None
+    requester_id: Optional[str] = None
+    status: Optional[str] = None
+    to_location_id: Optional[str] = None
+    to_user_id: Optional[str] = None
+    asset: Optional[dict] = None
+    requester: Optional[dict] = None
+    approver: Optional[dict] = None
+    from_user: Optional[dict] = None
+    to_user: Optional[dict] = None
+    from_location: Optional[dict] = None
+    to_location: Optional[dict] = None
+    approved_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
 @router.get("/", response_model=List[TransferResponse])
 async def get_transfers(
@@ -70,49 +80,60 @@ async def get_transfers(
     
     all_transfers_docs = list(query.stream())
 
-    # Collect all unique document references
-    asset_refs = set()
-    user_refs = set()
-    location_refs = set()
-
-    for doc in all_transfers_docs:
-        transfer = doc.to_dict()
-        if transfer.get('asset_id'):
-            asset_refs.add(db.collection('assets').document(transfer['asset_id']))
-        if transfer.get('requester_id'):
-            user_refs.add(db.collection('users').document(transfer['requester_id']))
-        if transfer.get('approver_id'):
-            user_refs.add(db.collection('users').document(transfer['approver_id']))
-        if transfer.get('from_user_id'):
-            user_refs.add(db.collection('users').document(transfer['from_user_id']))
-        if transfer.get('to_user_id'):
-            user_refs.add(db.collection('users').document(transfer['to_user_id']))
-        if transfer.get('from_location_id'):
-            location_refs.add(db.collection('locations').document(transfer['from_location_id']))
-        if transfer.get('to_location_id'):
-            location_refs.add(db.collection('locations').document(transfer['to_location_id']))
-
-    # Batch fetch all referenced documents
-    user_and_location_refs = list(user_refs | location_refs)
-    valid_user_and_location_refs = [ref for ref in user_and_location_refs if ref is not None]
-    if valid_user_and_location_refs:
-        referenced_docs_raw = db.get_all(valid_user_and_location_refs)
-        referenced_docs_map = {doc.reference.path: convert_doc_refs(doc.to_dict()) for doc in referenced_docs_raw if doc.exists}
-    else:
-        referenced_docs_map = {}
-
-    valid_asset_refs = [ref for ref in asset_refs if ref is not None]
-    if valid_asset_refs:
-        asset_docs = db.get_all(valid_asset_refs)
-        populated_assets = await _get_populated_assets(asset_docs, db)
-        assets_map = {asset['id']: asset for asset in populated_assets}
-    else:
-        assets_map = {}
-
     transfers_list = []
     for doc in all_transfers_docs:
         transfer_data = doc.to_dict()
         
+        asset = None
+        if transfer_data.get('asset_id'):
+            asset_ref = db.collection('assets').document(transfer_data['asset_id'])
+            asset_doc = asset_ref.get()
+            if asset_doc.exists:
+                populated_asset = await _get_populated_assets([asset_doc], db)
+                asset = populated_asset[0]
+
+        requester = None
+        if transfer_data.get('requester_id'):
+            requester_ref = db.collection('users').document(transfer_data['requester_id'])
+            requester_doc = requester_ref.get()
+            if requester_doc.exists:
+                requester = requester_doc.to_dict()
+
+        approver = None
+        if transfer_data.get('approver_id'):
+            approver_ref = db.collection('users').document(transfer_data['approver_id'])
+            approver_doc = approver_ref.get()
+            if approver_doc.exists:
+                approver = approver_doc.to_dict()
+
+        from_user = None
+        if transfer_data.get('from_user_id'):
+            from_user_ref = db.collection('users').document(transfer_data['from_user_id'])
+            from_user_doc = from_user_ref.get()
+            if from_user_doc.exists:
+                from_user = from_user_doc.to_dict()
+
+        to_user = None
+        if transfer_data.get('to_user_id'):
+            to_user_ref = db.collection('users').document(transfer_data['to_user_id'])
+            to_user_doc = to_user_ref.get()
+            if to_user_doc.exists:
+                to_user = to_user_doc.to_dict()
+
+        from_location = None
+        if transfer_data.get('from_location_id'):
+            from_location_ref = db.collection('locations').document(transfer_data['from_location_id'])
+            from_location_doc = from_location_ref.get()
+            if from_location_doc.exists:
+                from_location = from_location_doc.to_dict()
+
+        to_location = None
+        if transfer_data.get('to_location_id'):
+            to_location_ref = db.collection('locations').document(transfer_data['to_location_id'])
+            to_location_doc = to_location_ref.get()
+            if to_location_doc.exists:
+                to_location = to_location_doc.to_dict()
+
         response_item = {
             "id": doc.id,
             "status": transfer_data.get("status"),
@@ -120,13 +141,22 @@ async def get_transfers(
             "requested_at": transfer_data.get("requested_at"),
             "approved_at": transfer_data.get("approved_at"),
             "completed_at": transfer_data.get("completed_at"),
-            "asset": assets_map.get(transfer_data.get('asset_id')),
-            "requester": referenced_docs_map.get(db.collection('users').document(transfer_data['requester_id']).path) if transfer_data.get('requester_id') else None,
-            "approver": referenced_docs_map.get(db.collection('users').document(transfer_data['approver_id']).path) if transfer_data.get('approver_id') else None,
-            "from_user": referenced_docs_map.get(db.collection('users').document(transfer_data['from_user_id']).path) if transfer_data.get('from_user_id') else None,
-            "to_user": referenced_docs_map.get(db.collection('users').document(transfer_data['to_user_id']).path) if transfer_data.get('to_user_id') else None,
-            "from_location": referenced_docs_map.get(db.collection('locations').document(transfer_data['from_location_id']).path) if transfer_data.get('from_location_id') else None,
-            "to_location": referenced_docs_map.get(db.collection('locations').document(transfer_data['to_location_id']).path) if transfer_data.get('to_location_id') else None,
+            "asset": asset,
+            "requester": requester,
+            "approver": approver,
+            "from_user": from_user,
+            "to_user": to_user,
+            "from_location": from_location,
+            "to_location": to_location,
+            "asset_id": transfer_data.get("asset_id"),
+            "assigned_to_id": transfer_data.get("assigned_to_id"),
+            "from_location_id": transfer_data.get("from_location_id"),
+            "from_user_id": transfer_data.get("from_user_id"),
+            "requester_id": transfer_data.get("requester_id"),
+            "to_location_id": transfer_data.get("to_location_id"),
+            "to_user_id": transfer_data.get("to_user_id"),
+            "damage_report": transfer_data.get("damage_report"),
+            "photo_url": transfer_data.get("photo_url"),
         }
 
         transfers_list.append(response_item)
@@ -228,6 +258,10 @@ async def update_transfer(
 
     if transfer_data.status == "APPROVED":
         update_data['approved_at'] = datetime.utcnow()
+    elif transfer_data.status == "REJECTED":
+        if not transfer_data.rejection_reason:
+            raise HTTPException(status_code=400, detail="Rejection reason is required")
+        update_data['rejection_reason'] = transfer_data.rejection_reason
     elif transfer_data.status == "COMPLETED":
         update_data['completed_at'] = datetime.utcnow()
         

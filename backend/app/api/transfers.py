@@ -70,7 +70,7 @@ async def get_transfers(
     transfers_ref = db.collection('transfers')
     query = transfers_ref
 
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         query = query.where('requester_id', '==', current_user.get("id"))
     
     if status:
@@ -176,7 +176,7 @@ async def get_transfer(
     
     transfer_data = transfer.to_dict()
     # Check permissions
-    if current_user.get("role") != "ADMIN" and transfer_data.get("requester_id") != current_user.get("uid"):
+    if current_user.get("role") != "admin" and transfer_data.get("requester_id") != current_user.get("uid"):
         raise HTTPException(status_code=403, detail="Not authorized to view this transfer")
     
     response = convert_doc_refs(transfer_data)
@@ -188,6 +188,42 @@ async def get_transfer(
         if asset_doc.exists:
             populated_asset = await _get_populated_assets([asset_doc], db)
             response['asset'] = populated_asset[0]
+
+    if response.get('requester_id'):
+        requester_ref = db.collection('users').document(response['requester_id'])
+        requester_doc = requester_ref.get()
+        if requester_doc.exists:
+            response['requester'] = requester_doc.to_dict()
+
+    if response.get('approver_id'):
+        approver_ref = db.collection('users').document(response['approver_id'])
+        approver_doc = approver_ref.get()
+        if approver_doc.exists:
+            response['approver'] = approver_doc.to_dict()
+
+    if response.get('from_user_id'):
+        from_user_ref = db.collection('users').document(response['from_user_id'])
+        from_user_doc = from_user_ref.get()
+        if from_user_doc.exists:
+            response['from_user'] = from_user_doc.to_dict()
+
+    if response.get('to_user_id'):
+        to_user_ref = db.collection('users').document(response['to_user_id'])
+        to_user_doc = to_user_ref.get()
+        if to_user_doc.exists:
+            response['to_user'] = to_user_doc.to_dict()
+
+    if response.get('from_location_id'):
+        from_location_ref = db.collection('locations').document(response['from_location_id'])
+        from_location_doc = from_location_ref.get()
+        if from_location_doc.exists:
+            response['from_location'] = from_location_doc.to_dict()
+
+    if response.get('to_location_id'):
+        to_location_ref = db.collection('locations').document(response['to_location_id'])
+        to_location_doc = to_location_ref.get()
+        if to_location_doc.exists:
+            response['to_location'] = to_location_doc.to_dict()
 
     return response
 
@@ -245,7 +281,7 @@ async def update_transfer(
     current_user: dict = Depends(get_current_user)
 ):
     # Only admins can approve/reject transfers
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to update transfers")
     
     transfer_ref = db.collection('transfers').document(transfer_id)
@@ -290,7 +326,7 @@ async def get_pending_transfers_count(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     transfers_ref = db.collection('transfers').where('status', '==', 'PENDING')

@@ -4,19 +4,34 @@ from app.core.firebase import get_firestore_db
 from app.api.auth import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
+from enum import Enum
 
 router = APIRouter()
+
+class DivisionEnum(str, Enum):
+    act = "Air Cargo Terminal(ACT)"
+    lc1 = "Logistics Center 1(LC1)"
+    lc2 = "Logistics Center 2(LC2)"
+    shimanzi = "Shimanzi"
+    kibarani = "Kibarani"
 
 # Pydantic models
 class LocationCreate(BaseModel):
     name: str
+    division: DivisionEnum
+    address: Optional[str] = None
+    description: Optional[str] = None
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
+    division: Optional[DivisionEnum] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
 
 class LocationResponse(BaseModel):
     id: str
     name: str
+    division: Optional[str] = None
     address: Optional[str] = None
     description: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -60,6 +75,9 @@ async def create_location(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to create locations")
+
     location_dict = location_data.dict()
     location_dict['created_at'] = datetime.utcnow()
 
@@ -77,6 +95,9 @@ async def update_location(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to update locations")
+
     location_ref = db.collection('locations').document(location_id)
     location = location_ref.get()
     if not location.exists:
@@ -96,6 +117,9 @@ async def delete_location(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to delete locations")
+
     location_ref = db.collection('locations').document(location_id)
     location = location_ref.get()
     if not location.exists:

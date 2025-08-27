@@ -39,6 +39,7 @@ export interface User {
   role?: UserRole;
   is_active?: boolean;
   created_at?: string;
+  location?: Location;
 }
 
 export interface Asset {
@@ -62,9 +63,18 @@ export interface Asset {
   brand?: string;
 }
 
+export enum DivisionEnum {
+  ACT = "Air Cargo Terminal(ACT)",
+  LC1 = "Logistics Center 1(LC1)",
+  LC2 = "Logistics Center 2(LC2)",
+  SHIMANZI = "Shimanzi",
+  KIBARANI = "Kibarani",
+}
+
 export interface Location {
   id: string;
   name: string;
+  division?: DivisionEnum;
   address?: string;
   description?: string;
   created_at?: string;
@@ -79,6 +89,8 @@ export interface Transfer {
   from_user_id?: string;
   photo_url?: string;
   reason?: string;
+  notes?: string;
+  rejection_reason?: string;
   requested_at?: string;
   requester_id?: string;
   status?: string;

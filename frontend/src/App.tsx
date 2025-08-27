@@ -14,6 +14,8 @@ import DashboardPage from './pages/DashboardPage.tsx';
 import AssetListPage from './pages/AssetListPage.tsx';
 import TransfersPage from './pages/TransfersPage.tsx';
 import TransferDetailsPage from './pages/TransferDetailsPage.tsx';
+import LocationsPage from './pages/LocationsPage.tsx';
+import UsersPage from './pages/UsersPage.tsx';
 
 const theme = createTheme({
   palette: {
@@ -115,7 +117,7 @@ function AppRoutes() {
         path="/users"
         element={
           <ProtectedRoute>
-            <div>Users Page - Coming Soon</div>
+            <UsersPage />
           </ProtectedRoute>
         }
       />
@@ -123,7 +125,7 @@ function AppRoutes() {
         path="/locations"
         element={
           <ProtectedRoute>
-            <div>Locations Page - Coming Soon</div>
+            <LocationsPage />
           </ProtectedRoute>
         }
       />

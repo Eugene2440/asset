@@ -129,7 +129,7 @@ const TransfersPage = () => {
               <TableCell>To Location</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Requested At</TableCell>
-              {user?.role === 'ADMIN' && <TableCell>Actions</TableCell>}
+              {user?.role === 'admin' && <TableCell>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -147,7 +147,7 @@ const TransfersPage = () => {
                 <TableCell>{transfer.to_location?.name}</TableCell>
                 <TableCell>{transfer.status}</TableCell>
                 <TableCell>{new Date(transfer.requested_at).toLocaleString()}</TableCell>
-                {user?.role === 'ADMIN' && (
+                {user?.role === 'admin' && (
                   <TableCell>
                     {transfer.status === 'PENDING' && (
                       <>

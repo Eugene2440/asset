@@ -7,30 +7,25 @@ import {
   Alert,
   Grid,
   Divider,
+  Card,
+  CardContent,
 } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { assetsAPI } from '../services/api.ts';
+import { Transfer } from '../types';
 
-interface TransferDetails {
-  id: string;
-  asset: { name: string, serial_number: string };
-  from_user: { name: string, email: string };
-  to_user: { name: string, email: string };
-  from_location: { name: string };
-  to_location: { name: string };
-  status: string;
-  reason: string;
-  notes: string;
-  requested_at: string;
-  approved_at: string;
-  completed_at: string;
-  requester: { name: string, email: string };
-  approver: { name: string, email: string };
-}
+const DetailItem = ({ title, value }: { title: string; value: React.ReactNode }) => (
+  <Box mb={2}>
+    <Typography variant="caption" color="text.secondary">
+      {title}
+    </Typography>
+    <Typography variant="body1" component="div">{value || 'N/A'}</Typography>
+  </Box>
+);
 
 const TransferDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [transfer, setTransfer] = useState<TransferDetails | null>(null);
+  const [transfer, setTransfer] = useState<Transfer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +34,6 @@ const TransferDetailsPage = () => {
       if (!id) return;
       try {
         setLoading(true);
-        // This needs to be implemented in services/api.ts
         const data = await assetsAPI.getTransferById(id);
         setTransfer(data);
       } catch (err: any) {
@@ -78,57 +72,104 @@ const TransferDetailsPage = () => {
         Transfer Details
       </Typography>
       <Paper sx={{ p: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="h6">Asset</Typography>
-            <Typography>{transfer.asset?.name} ({transfer.asset?.serial_number})</Typography>
+        <Grid container spacing={3}>
+          <Grid xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Typography variant="h5" gutterBottom>
+                  Asset Information
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={6}>
+                    <DetailItem title="Asset Name" value={transfer.asset?.name} />
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <DetailItem title="Serial Number" value={transfer.asset?.serial_number} />
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <DetailItem title="Asset Model" value={transfer.asset?.asset_model} />
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <DetailItem title="Asset Type" value={transfer.asset?.asset_type} />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ mt: 3 }}>
+              <CardContent>
+                <Typography variant="h5" gutterBottom>
+                  Transfer Details
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={6}>
+                    <Typography variant="h6">From</Typography>
+                    <DetailItem title="User" value={transfer.from_user?.name} />
+                    <DetailItem title="Location" value={transfer.from_location?.name} />
+                  </Grid>
+                  <Grid xs={12} sm={6}>
+                    <Typography variant="h6">To</Typography>
+                    <DetailItem title="User" value={transfer.to_user?.name} />
+                    <DetailItem title="Location" value={transfer.to_location?.name} />
+                  </Grid>
+                </Grid>
+                <Divider sx={{ my: 2 }} />
+                <DetailItem title="Reason for Transfer" value={transfer.reason} />
+                {transfer.notes && <DetailItem title="Notes" value={transfer.notes} />}
+                {transfer.status === 'REJECTED' && (
+                  <DetailItem title="Rejection Reason" value={transfer.rejection_reason} />
+                )}
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="h6">Status</Typography>
-            <Typography>{transfer.status}</Typography>
+
+          <Grid xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h5" gutterBottom>
+                  Status & Timeline
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <DetailItem title="Status" value={transfer.status} />
+                <DetailItem
+                  title="Requested"
+                  value={
+                    <>
+                      <Typography variant="body2">By: {transfer.requester?.name}</Typography>
+                      <Typography variant="body2">
+                        At: {transfer.requested_at ? new Date(transfer.requested_at).toLocaleString() : 'N/A'}
+                      </Typography>
+                    </>
+                  }
+                />
+                {transfer.approver && (
+                  <DetailItem
+                    title="Approved"
+                    value={
+                      <>
+                        <Typography variant="body2">By: {transfer.approver?.name}</Typography>
+                        <Typography variant="body2">
+                          At: {transfer.approved_at ? new Date(transfer.approved_at).toLocaleString() : 'N/A'}
+                        </Typography>
+                      </>
+                    }
+                  />
+                )}
+                {transfer.completed_at && (
+                  <DetailItem
+                    title="Completed"
+                    value={
+                      <Typography variant="body2">
+                        At: {new Date(transfer.completed_at).toLocaleString()}
+                      </Typography>
+                    }
+                  />
+                )}
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="h6">From</Typography>
-            <Typography>User: {transfer.from_user?.name}</Typography>
-            <Typography>Location: {transfer.from_location?.name}</Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="h6">To</Typography>
-            <Typography>User: {transfer.to_user?.name}</Typography>
-            <Typography>Location: {transfer.to_location?.name}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="h6">Details</Typography>
-            <Typography>Reason: {transfer.reason}</Typography>
-            <Typography>Notes: {transfer.notes}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography variant="h6">Requested</Typography>
-            <Typography>By: {transfer.requester?.name}</Typography>
-            <Typography>At: {new Date(transfer.requested_at).toLocaleString()}</Typography>
-          </Grid>
-          {transfer.approver && (
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6">Approved</Typography>
-              <Typography>By: {transfer.approver?.name}</Typography>
-              <Typography>At: {new Date(transfer.approved_at).toLocaleString()}</Typography>
-            </Grid>
-          )}
-          {transfer.completed_at && (
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6">Completed</Typography>
-              <Typography>At: {new Date(transfer.completed_at).toLocaleString()}</Typography>
-            </Grid>
-          )}
         </Grid>
       </Paper>
     </Box>

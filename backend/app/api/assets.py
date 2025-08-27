@@ -170,14 +170,15 @@ async def get_assets(
     assigned_user_id: Optional[str] = None,
     location_id: Optional[str] = None,
     search_query: Optional[str] = None,
-    sort_by: Optional[str] = None,
-    sort_order: Optional[str] = Query("asc", regex="^(asc|desc)$"),
+    sort_by: Optional[str] = "updated_at",
+    sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$"),
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
     assets_ref = db.collection('assets')
     query = assets_ref
 
+    # Apply server-side filters
     if category:
         query = query.where('category', '==', category)
     if status:
@@ -187,32 +188,57 @@ async def get_assets(
     if location_id:
         query = query.where('location_id', '==', location_id)
 
-    all_assets_docs = list(query.stream())
-    
-    assets_list = await _get_populated_assets(all_assets_docs, db)
-
+    # The search_query requires in-memory filtering due to Firestore limitations on partial text search.
+    # This part remains inefficient. For a production-grade solution, consider a dedicated search service
+    # like Algolia or Elasticsearch.
     if search_query:
+        all_assets_docs = list(query.stream())
+        assets_list = await _get_populated_assets(all_assets_docs, db)
+        
         search_query_lower = search_query.lower()
         assets_list = [
             asset for asset in assets_list if
-            (search_query_lower in str(asset.get('asset_tag') or '').lower()) or
-            (search_query_lower in str(asset.get('name') or '').lower()) or
+            (search_query_lower in str(asset.get('tag_no') or '').lower()) or
             (search_query_lower in str(asset.get('serial_number') or '').lower()) or
-            (search_query_lower in str(asset.get('brand') or '').lower()) or
-            (search_query_lower in str(asset.get('model') or '').lower())
+            (search_query_lower in str(asset.get('model') or '').lower()) or
+            (search_query_lower in str(asset.get('asset_make') or '').lower()) or
+            (search_query_lower in str(asset.get('asset_type') or '').lower())
         ]
+        
+        total_count = len(assets_list)
 
-    total_count = len(assets_list)
+        if sort_by:
+            assets_list.sort(
+                key=lambda asset: asset.get(sort_by) or '',
+                reverse=(sort_order == "desc")
+            )
 
-    if sort_by:
-        assets_list.sort(
-            key=lambda asset: asset.get(sort_by) or '',
-            reverse=(sort_order == "desc")
-        )
+        paginated_assets = assets_list[skip : skip + limit]
+        return PaginatedAssetResponse(total_count=total_count, assets=paginated_assets)
 
-    paginated_assets = assets_list[skip : skip + limit]
+    # Efficient path for non-search queries
+    else:
+        # Get total count for pagination
+        count_query = query.count()
+        total_count_result = count_query.get()
+        total_count = total_count_result[0][0].value
 
-    return PaginatedAssetResponse(total_count=total_count, assets=paginated_assets)
+        # Apply sorting on the server
+        # Note: Firestore requires creating composite indexes for most non-trivial sort/filter combinations.
+        # If you get an error from Firestore, it will usually include a link to create the required index.
+        if sort_by:
+            from google.cloud.firestore_v1.base_query import Direction
+            direction = Direction.DESCENDING if sort_order == "desc" else Direction.ASCENDING
+            query = query.order_by(sort_by, direction=direction)
+
+        # Apply pagination on the server
+        paginated_query = query.offset(skip).limit(limit)
+        
+        asset_docs = list(paginated_query.stream())
+        
+        assets_list = await _get_populated_assets(asset_docs, db)
+
+        return PaginatedAssetResponse(total_count=total_count, assets=assets_list)
 
 @router.put("/{asset_id}", response_model=AssetResponse)
 async def update_asset(

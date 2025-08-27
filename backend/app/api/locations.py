@@ -19,21 +19,15 @@ class DivisionEnum(str, Enum):
 class LocationCreate(BaseModel):
     name: str
     division: DivisionEnum
-    address: Optional[str] = None
-    description: Optional[str] = None
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
     division: Optional[DivisionEnum] = None
-    address: Optional[str] = None
-    description: Optional[str] = None
 
 class LocationResponse(BaseModel):
     id: str
     name: str
     division: Optional[str] = None
-    address: Optional[str] = None
-    description: Optional[str] = None
     created_at: Optional[datetime] = None
 
 @router.get("/", response_model=List[LocationResponse])

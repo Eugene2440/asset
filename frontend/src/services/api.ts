@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LoginRequest, LoginResponse, User } from '../types';
+import { LoginRequest, LoginResponse, User } from '../types/index.ts';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -73,11 +73,35 @@ export const usersAPI = {
     const response = await apiClient.get('/api/users/');
     return response.data;
   },
+  createUser: async (userData: any): Promise<any> => {
+    const response = await apiClient.post('/api/users/', userData);
+    return response.data;
+  },
+  updateUser: async (id: string, userData: any): Promise<any> => {
+    const response = await apiClient.put(`/api/users/${id}`, userData);
+    return response.data;
+  },
+  deleteUser: async (id: string): Promise<any> => {
+    const response = await apiClient.delete(`/api/users/${id}`);
+    return response.data;
+  },
 };
 
 export const locationsAPI = {
   getLocations: async (): Promise<any> => {
     const response = await apiClient.get('/api/locations/');
+    return response.data;
+  },
+  createLocation: async (locationData: any): Promise<any> => {
+    const response = await apiClient.post('/api/locations/', locationData);
+    return response.data;
+  },
+  updateLocation: async (id: string, locationData: any): Promise<any> => {
+    const response = await apiClient.put(`/api/locations/${id}`, locationData);
+    return response.data;
+  },
+  deleteLocation: async (id: string): Promise<any> => {
+    const response = await apiClient.delete(`/api/locations/${id}`);
     return response.data;
   },
 };

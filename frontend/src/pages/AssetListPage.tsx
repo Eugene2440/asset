@@ -22,6 +22,7 @@ import {
   IconButton,
   Menu,
   Snackbar,
+  TablePagination,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -30,6 +31,7 @@ import { assetsAPI } from '../services/api.ts';
 import { Asset } from '../types';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import TransferAssetModal from '../components/modals/TransferAssetModal.tsx';
+import AllocateDeviceModal from '../components/modals/AllocateDeviceModal.tsx';
 
 const AssetListPage = () => {
   const { user } = useAuth();
@@ -43,16 +45,23 @@ const AssetListPage = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isTransferModalOpen, setTransferModalOpen] = useState(false);
+  const [isAllocateModalOpen, setAllocateModalOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
   const open = Boolean(anchorEl);
 
   const fetchAssets = async () => {
     try {
       setLoading(true);
-      const params: any = {};
+      const params: any = {
+        skip: page * rowsPerPage,
+        limit: rowsPerPage,
+      };
       if (searchTerm) {
-        params.search = searchTerm;
+        params.search_query = searchTerm;
       }
       if (sortBy) {
         params.sort_by = sortBy;
@@ -62,7 +71,8 @@ const AssetListPage = () => {
         params.status = filterStatus;
       }
       const data = await assetsAPI.getAssets(params);
-      setAssets(data.assets); // Assuming the API returns { assets: [...] }
+      setAssets(data.assets);
+      setTotalCount(data.total_count);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to fetch assets');
     } finally {
@@ -78,7 +88,7 @@ const AssetListPage = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, sortBy, sortOrder, filterStatus]);
+  }, [searchTerm, sortBy, sortOrder, filterStatus, page, rowsPerPage]);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, asset: Asset) => {
     setAnchorEl(event.currentTarget);
@@ -107,8 +117,18 @@ const AssetListPage = () => {
     setTransferModalOpen(true);
   };
 
+  const handleAllocate = () => {
+    if (!selectedAsset) return;
+    setAllocateModalOpen(true);
+  };
+
   const handleTransferSuccess = () => {
     setSnackbarMessage('Transfer request created successfully.');
+    fetchAssets(); // Refresh asset list
+  };
+
+  const handleAllocateSuccess = () => {
+    setSnackbarMessage('Device allocated successfully.');
     fetchAssets(); // Refresh asset list
   };
 
@@ -124,6 +144,15 @@ const AssetListPage = () => {
 
   const handleFilterStatusChange = (event: any) => {
     setFilterStatus(event.target.value);
+  };
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   if (loading) {
@@ -171,9 +200,8 @@ const AssetListPage = () => {
             onChange={handleFilterStatusChange}
           >
             <MenuItem value="">All</MenuItem>
-            <MenuItem value="Active">Active</MenuItem>
-            <MenuItem value="Inactive">Inactive</MenuItem>
-            <MenuItem value="Maintenance">Maintenance</MenuItem>
+            <MenuItem value="In-service">In-service</MenuItem>
+            <MenuItem value="Retired">Retired</MenuItem>
           </Select>
         </FormControl>
       </Toolbar>
@@ -223,12 +251,24 @@ const AssetListPage = () => {
                     <MenuItem onClick={handleEdit}>Edit</MenuItem>
                     <MenuItem onClick={handleDelete}>Delete</MenuItem>
                     <MenuItem onClick={handleTransfer}>Transfer</MenuItem>
+                    {!asset.assigned_user && (
+                      <MenuItem onClick={handleAllocate}>Allocate Device</MenuItem>
+                    )}
                   </Menu>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalCount}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </TableContainer>
       {selectedAsset && (
         <TransferAssetModal
@@ -240,6 +280,17 @@ const AssetListPage = () => {
           asset={selectedAsset}
           onTransferSuccess={handleTransferSuccess}
           currentUser={user}
+        />
+      )}
+      {selectedAsset && (
+        <AllocateDeviceModal
+          open={isAllocateModalOpen}
+          onClose={() => {
+            setAllocateModalOpen(false);
+            handleMenuClose();
+          }}
+          asset={selectedAsset}
+          onAllocateSuccess={handleAllocateSuccess}
         />
       )}
       <Snackbar

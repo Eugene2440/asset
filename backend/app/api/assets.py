@@ -5,6 +5,7 @@ from app.api.auth import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
 from google.cloud.firestore_v1.document import DocumentReference
+from google.cloud.firestore_v1 import query as firestore_query
 
 router = APIRouter()
 
@@ -170,7 +171,7 @@ async def get_assets(
     assigned_user_id: Optional[str] = None,
     location_id: Optional[str] = None,
     search_query: Optional[str] = None,
-    sort_by: Optional[str] = "updated_at",
+    sort_by: Optional[str] = None,
     sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$"),
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
@@ -182,7 +183,8 @@ async def get_assets(
     if category:
         query = query.where('category', '==', category)
     if status:
-        query = query.where('status', '==', status)
+        status_ref = db.collection('asset_statuses').document(status.replace('/', '-'))
+        query = query.where('asset_status', '==', status_ref)
     if assigned_user_id:
         query = query.where('assigned_user_id', '==', assigned_user_id)
     if location_id:
@@ -226,9 +228,8 @@ async def get_assets(
         # Apply sorting on the server
         # Note: Firestore requires creating composite indexes for most non-trivial sort/filter combinations.
         # If you get an error from Firestore, it will usually include a link to create the required index.
-        if sort_by:
-            from google.cloud.firestore_v1.base_query import Direction
-            direction = Direction.DESCENDING if sort_order == "desc" else Direction.ASCENDING
+        if sort_by and sort_by != "":
+            direction = firestore_query.Query.DESCENDING if sort_order == "desc" else firestore_query.Query.ASCENDING
             query = query.order_by(sort_by, direction=direction)
 
         # Apply pagination on the server

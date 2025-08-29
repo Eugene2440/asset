@@ -45,12 +45,25 @@ async def get_dashboard_stats(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Inefficient for large datasets. Consider using Cloud Functions for aggregation.
-    total_assets = len(db.collection('assets').get())
-    active_assets = len(db.collection('assets').where('status', '==', 'ACTIVE').get())
+    total_assets_query = db.collection('assets').count()
+    total_assets = total_assets_query.get()[0][0].value
+
+    # Get the reference to the 'In-service' status
+    in_service_status_ref = db.collection('asset_statuses').document('In-service')
+
+    active_assets_query = db.collection('assets').where('asset_status', '==', in_service_status_ref).count()
+    active_assets = active_assets_query.get()[0][0].value
+
     inactive_assets = total_assets - active_assets
-    pending_transfers = len(db.collection('transfers').where('status', '==', 'PENDING').get())
-    total_users = len(db.collection('users').get())
-    total_locations = len(db.collection('locations').get())
+
+    pending_transfers_query = db.collection('transfers').where('status', '==', 'PENDING').count()
+    pending_transfers = pending_transfers_query.get()[0][0].value
+
+    total_users_query = db.collection('users').count()
+    total_users = total_users_query.get()[0][0].value
+
+    total_locations_query = db.collection('locations').count()
+    total_locations = total_locations_query.get()[0][0].value
     
     return DashboardStats(
         total_assets=total_assets,

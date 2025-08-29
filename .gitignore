@@ -26,3 +26,5 @@ firebase-service-account.json
 # OS
 .DS_Store
 
+# Google Cloud service account key
+backend/assets-11ffc-firebase-adminsdk-fbsvc-5aa4205260.json

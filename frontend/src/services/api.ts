@@ -39,11 +39,23 @@ export const analyticsAPI = {
     const response = await apiClient.get('/api/analytics/dashboard');
     return response.data;
   },
+  getAssetsByCategory: async (): Promise<any> => {
+    const response = await apiClient.get('/api/analytics/assets/by-category');
+    return response.data;
+  },
+  getAssetsByStatus: async (): Promise<any> => {
+    const response = await apiClient.get('/api/analytics/assets/by-status');
+    return response.data;
+  },
 };
 
 export const assetsAPI = {
   getAssets: async (params?: any): Promise<any> => {
     const response = await apiClient.get('/api/assets/', { params });
+    return response.data;
+  },
+  getAssetById: async (id: string): Promise<any> => {
+    const response = await apiClient.get(`/api/assets/${id}`);
     return response.data;
   },
   createAsset: async (assetData: any): Promise<any> => {
@@ -64,6 +76,18 @@ export const assetsAPI = {
   },
   updateTransfer: async (id: string, transferData: any): Promise<any> => {
     const response = await apiClient.put(`/api/transfers/${id}`, transferData);
+    return response.data;
+  },
+  getAssetModels: async (): Promise<any> => {
+    const response = await apiClient.get('/api/asset-models');
+    return response.data;
+  },
+  bulkUpdateStatus: async (assetIds: string[], status: string): Promise<any> => {
+    const response = await apiClient.post('/api/assets/bulk-update-status', { asset_ids: assetIds, status });
+    return response.data;
+  },
+  bulkUpdateLocation: async (assetIds: string[], locationId: string): Promise<any> => {
+    const response = await apiClient.post('/api/assets/bulk-update-location', { asset_ids: assetIds, location_id: locationId });
     return response.data;
   },
 };

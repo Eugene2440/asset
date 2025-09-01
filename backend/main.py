@@ -11,6 +11,7 @@ from app.api.transfers import router as transfers_router
 from app.api.users import router as users_router
 from app.api.locations import router as locations_router
 from app.api.analytics import router as analytics_router
+from app.api.asset_models import router as asset_models_router
 from app.core.firebase import initialize_firebase
 
 app = FastAPI(
@@ -43,6 +44,7 @@ app.include_router(transfers_router, prefix="/api/transfers", tags=["transfers"]
 app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(locations_router, prefix="/api/locations", tags=["locations"])
 app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(asset_models_router, prefix="/api", tags=["asset_models"])
 
 @app.get("/")
 async def root():

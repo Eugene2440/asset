@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { analyticsAPI } from '../../../services/api';
+import { analyticsAPI } from '../../../services/api.ts';
 import { Box, Typography } from '@mui/material';
 
 const AssetStatusChart = () => {
@@ -23,7 +23,7 @@ const AssetStatusChart = () => {
       <Typography variant="h6" gutterBottom>
         Assets by Status
       </Typography>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="80%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="status" />

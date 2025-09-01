@@ -23,15 +23,19 @@ import {
   Menu,
   Snackbar,
   TablePagination,
+  Checkbox,
+  Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useNavigate } from 'react-router-dom';
-import { assetsAPI } from '../services/api.ts';
+import { Link, useNavigate } from 'react-router-dom';
+import { assetsAPI, usersAPI, locationsAPI } from '../services/api.ts';
 import { Asset } from '../types';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import TransferAssetModal from '../components/modals/TransferAssetModal.tsx';
 import AllocateDeviceModal from '../components/modals/AllocateDeviceModal.tsx';
+import BulkUpdateStatusModal from '../components/modals/BulkUpdateStatusModal.tsx';
+import BulkUpdateLocationModal from '../components/modals/BulkUpdateLocationModal.tsx';
 
 const AssetListPage = () => {
   const { user } = useAuth();
@@ -42,10 +46,19 @@ const AssetListPage = () => {
   const [sortBy, setSortBy] = useState<keyof Asset | ''>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | ''>('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterAssetType, setFilterAssetType] = useState('');
+  const [filterUser, setFilterUser] = useState('');
+  const [locations, setLocations] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [assetModels, setAssetModels] = useState([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isTransferModalOpen, setTransferModalOpen] = useState(false);
   const [isAllocateModalOpen, setAllocateModalOpen] = useState(false);
+  const [isBulkUpdateStatusModalOpen, setBulkUpdateStatusModalOpen] = useState(false);
+  const [isBulkUpdateLocationModalOpen, setBulkUpdateLocationModalOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -70,6 +83,15 @@ const AssetListPage = () => {
       if (filterStatus) {
         params.status = filterStatus;
       }
+      if (filterLocation) {
+        params.location_id = filterLocation;
+      }
+      if (filterAssetType) {
+        params.category = filterAssetType;
+      }
+      if (filterUser) {
+        params.assigned_user_id = filterUser;
+      }
       const data = await assetsAPI.getAssets(params);
       setAssets(data.assets);
       setTotalCount(data.total_count);
@@ -88,7 +110,26 @@ const AssetListPage = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, sortBy, sortOrder, filterStatus, page, rowsPerPage]);
+  }, [searchTerm, sortBy, sortOrder, filterStatus, filterLocation, filterAssetType, filterUser, page, rowsPerPage]);
+
+  useEffect(() => {
+    const fetchFilterData = async () => {
+      try {
+        const [locationsData, usersData, assetModelsData] = await Promise.all([
+          locationsAPI.getLocations(),
+          usersAPI.getUsers(),
+          assetsAPI.getAssetModels(),
+        ]);
+        setLocations(locationsData);
+        setUsers(usersData);
+        setAssetModels(assetModelsData);
+      } catch (error) {
+        console.error("Failed to fetch filter data", error);
+      }
+    };
+
+    fetchFilterData();
+  }, []);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, asset: Asset) => {
     setAnchorEl(event.currentTarget);
@@ -146,6 +187,18 @@ const AssetListPage = () => {
     setFilterStatus(event.target.value);
   };
 
+  const handleFilterLocationChange = (event: any) => {
+    setFilterLocation(event.target.value);
+  };
+
+  const handleFilterAssetTypeChange = (event: any) => {
+    setFilterAssetType(event.target.value);
+  };
+
+  const handleFilterUserChange = (event: any) => {
+    setFilterUser(event.target.value);
+  };
+
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -153,6 +206,35 @@ const AssetListPage = () => {
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const newSelecteds = assets.map((n) => n.id);
+      setSelected(newSelecteds);
+      return;
+    }
+    setSelected([]);
+  };
+
+  const handleClick = (event: React.MouseEvent<unknown>, id: string) => {
+    const selectedIndex = selected.indexOf(id);
+    let newSelected: string[] = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selected, id);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selected.slice(1));
+    } else if (selectedIndex === selected.length - 1) {
+      newSelected = newSelected.concat(selected.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(
+        selected.slice(0, selectedIndex),
+        selected.slice(selectedIndex + 1),
+      );
+    }
+
+    setSelected(newSelected);
   };
 
   if (loading) {
@@ -204,11 +286,74 @@ const AssetListPage = () => {
             <MenuItem value="Retired">Retired</MenuItem>
           </Select>
         </FormControl>
+        <FormControl size="small" sx={{ mr: 2, minWidth: 120 }}>
+          <InputLabel>Location</InputLabel>
+          <Select
+            value={filterLocation}
+            label="Location"
+            onChange={handleFilterLocationChange}
+          >
+            <MenuItem value="">All</MenuItem>
+            {locations.map((location: any) => (
+              <MenuItem key={location.id} value={location.id}>
+                {location.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ mr: 2, minWidth: 120 }}>
+          <InputLabel>Asset Type</InputLabel>
+          <Select
+            value={filterAssetType}
+            label="Asset Type"
+            onChange={handleFilterAssetTypeChange}
+          >
+            <MenuItem value="">All</MenuItem>
+            {assetModels.map((model: any) => (
+              <MenuItem key={model.id} value={model.asset_type}>
+                {model.asset_type}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ mr: 2, minWidth: 120 }}>
+          <InputLabel>User</InputLabel>
+          <Select
+            value={filterUser}
+            label="User"
+            onChange={handleFilterUserChange}
+          >
+            <MenuItem value="">All</MenuItem>
+            {users.map((user: any) => (
+              <MenuItem key={user.id} value={user.id}>
+                {user.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        {selected.length > 0 && (
+          <Button variant="contained" sx={{ mr: 2 }} onClick={() => setBulkUpdateStatusModalOpen(true)}>
+            Update Status
+          </Button>
+        )}
+        {selected.length > 0 && (
+          <Button variant="contained" onClick={() => setBulkUpdateLocationModalOpen(true)}>
+            Update Location
+          </Button>
+        )}
       </Toolbar>
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="asset table">
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={selected.length > 0 && selected.length < assets.length}
+                  checked={assets.length > 0 && selected.length === assets.length}
+                  onChange={handleSelectAllClick}
+                  inputProps={{ 'aria-label': 'select all assets' }}
+                />
+              </TableCell>
               <TableCell>Tag No</TableCell>
               <TableCell>Serial Number</TableCell>
               <TableCell>OS Version</TableCell>
@@ -222,12 +367,29 @@ const AssetListPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {assets.map((asset) => (
+            {assets.map((asset) => {
+              const isItemSelected = selected.indexOf(asset.id) !== -1;
+
+              return (
               <TableRow
                 key={asset.id}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                hover
+                onClick={(event) => handleClick(event, asset.id)}
+                role="checkbox"
+                aria-checked={isItemSelected}
+                tabIndex={-1}
+                selected={isItemSelected}
               >
-                <TableCell component="th" scope="row">{asset.tag_no}</TableCell>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={isItemSelected}
+                    inputProps={{ 'aria-labelledby': `enhanced-table-checkbox-${asset.id}` }}
+                  />
+                </TableCell>
+                <TableCell component="th" scope="row">
+                  <Link to={`/assets/${asset.id}`}>{asset.tag_no}</Link>
+                </TableCell>
                 <TableCell>{asset.serial_number}</TableCell>
                 <TableCell>{asset.os_version}</TableCell>
                 <TableCell>{asset.asset_type}</TableCell>
@@ -257,7 +419,8 @@ const AssetListPage = () => {
                   </Menu>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}}
           </TableBody>
         </Table>
         <TablePagination
@@ -298,6 +461,26 @@ const AssetListPage = () => {
         autoHideDuration={6000}
         onClose={() => setSnackbarMessage(null)}
         message={snackbarMessage}
+      />
+      <BulkUpdateStatusModal
+        open={isBulkUpdateStatusModalOpen}
+        onClose={() => setBulkUpdateStatusModalOpen(false)}
+        assetIds={selected}
+        onSuccess={() => {
+          setSnackbarMessage('Assets status updated successfully.');
+          fetchAssets();
+          setSelected([]);
+        }}
+      />
+      <BulkUpdateLocationModal
+        open={isBulkUpdateLocationModalOpen}
+        onClose={() => setBulkUpdateLocationModalOpen(false)}
+        assetIds={selected}
+        onSuccess={() => {
+          setSnackbarMessage('Assets location updated successfully.');
+          fetchAssets();
+          setSelected([]);
+        }}
       />
     </Box>
   );

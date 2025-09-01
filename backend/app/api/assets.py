@@ -96,6 +96,14 @@ class AssetUpdate(BaseModel):
     tag_no: Optional[str] = None
     user: Optional[str] = None
 
+class BulkUpdateStatus(BaseModel):
+    asset_ids: List[str]
+    status: str
+
+class BulkUpdateLocation(BaseModel):
+    asset_ids: List[str]
+    location_id: str
+
 class AssetResponse(BaseModel):
     id: str
     asset_model: Optional[str] = None
@@ -276,3 +284,33 @@ async def delete__asset(
 
     asset_ref.delete()
     return {"message": "Asset deleted successfully"}
+
+@router.post("/bulk-update-status")
+async def bulk_update_status(
+    update_data: BulkUpdateStatus,
+    db = Depends(get_firestore_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    for asset_id in update_data.asset_ids:
+        asset_ref = db.collection('assets').document(asset_id)
+        asset_ref.update({"status": update_data.status})
+    
+    return {"message": "Assets updated successfully"}
+
+@router.post("/bulk-update-location")
+async def bulk_update_location(
+    update_data: BulkUpdateLocation,
+    db = Depends(get_firestore_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    for asset_id in update_data.asset_ids:
+        asset_ref = db.collection('assets').document(asset_id)
+        asset_ref.update({"location_id": update_data.location_id})
+    
+    return {"message": "Assets updated successfully"}

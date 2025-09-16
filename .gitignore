@@ -26,5 +26,5 @@ firebase-service-account.json
 # OS
 .DS_Store
 
-# Google Cloud service account key - all Firebase admin SDK files
+# Firebase credentials - ignore all Firebase admin SDK files
 *firebase-adminsdk*.json

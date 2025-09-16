@@ -122,14 +122,14 @@ const TransfersPage = () => {
         <Table sx={{ minWidth: 650 }} aria-label="transfers table">
           <TableHead>
             <TableRow>
-              <TableCell>Asset</TableCell>
-              <TableCell>From User</TableCell>
-              <TableCell>To User</TableCell>
-              <TableCell>From Location</TableCell>
-              <TableCell>To Location</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Requested At</TableCell>
-              {user?.role === 'admin' && <TableCell>Actions</TableCell>}
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Asset</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>From User</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>To User</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>From Location</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>To Location</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Status</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Requested At</TableCell>
+              {user?.role === 'admin' && <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -140,15 +140,15 @@ const TransfersPage = () => {
                 onClick={() => handleRowClick(transfer.id)}
                 sx={{ cursor: 'pointer' }}
               >
-                <TableCell>{transfer.asset?.asset_model}</TableCell>
-                <TableCell>{transfer.from_user?.name}</TableCell>
-                <TableCell>{transfer.to_user?.name}</TableCell>
-                <TableCell>{transfer.from_location?.name}</TableCell>
-                <TableCell>{transfer.to_location?.name}</TableCell>
-                <TableCell>{transfer.status}</TableCell>
-                <TableCell>{new Date(transfer.requested_at).toLocaleString()}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.asset?.asset_model}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.from_user?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.to_user?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.from_location?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.to_location?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.status}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{transfer.requested_at ? new Date(transfer.requested_at).toLocaleString() : 'N/A'}</TableCell>
                 {user?.role === 'admin' && (
-                  <TableCell>
+                  <TableCell sx={{ padding: '8px' }}>
                     {transfer.status === 'PENDING' && (
                       <>
                         <Button
@@ -159,7 +159,7 @@ const TransfersPage = () => {
                             e.stopPropagation();
                             handleAccept(transfer.id);
                           }}
-                          sx={{ mr: 1 }}
+                          sx={{ mr: 1, fontSize: '0.65rem' }}
                         >
                           Accept
                         </Button>
@@ -171,6 +171,7 @@ const TransfersPage = () => {
                             e.stopPropagation();
                             handleReject(transfer);
                           }}
+                          sx={{ fontSize: '0.65rem' }}
                         >
                           Reject
                         </Button>

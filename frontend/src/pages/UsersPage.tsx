@@ -132,24 +132,24 @@ const UsersPage = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Active</TableCell>
-              {loggedInUser?.role === 'admin' && <TableCell>Actions</TableCell>}
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Name</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Location</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Active</TableCell>
+              {loggedInUser?.role === 'admin' && <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredUsers.map((user) => (
               <TableRow key={user.id}>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.location?.name || 'N/A'}</TableCell>
-                <TableCell>{user.is_active ? 'Yes' : 'No'}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{user.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{user.location?.name || 'N/A'}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{user.is_active ? 'Yes' : 'No'}</TableCell>
                 {loggedInUser?.role === 'admin' && (
-                  <TableCell>
-                    <IconButton onClick={() => handleOpenEdit(user)}>
+                  <TableCell sx={{ padding: '8px' }}>
+                    <IconButton onClick={() => handleOpenEdit(user)} size="small">
                       <EditIcon />
                     </IconButton>
-                    <IconButton onClick={() => handleDelete(user.id)}>
+                    <IconButton onClick={() => handleDelete(user.id)} size="small">
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
@@ -160,7 +160,7 @@ const UsersPage = () => {
         </Table>
       </TableContainer>
 
-      <AddUserModal open={openAdd} onClose={handleCloseAdd} onAdd={handleUserModified} />
+      <AddUserModal open={openAdd} onClose={handleCloseAdd} onUserAdded={handleUserModified} />
       {selectedUser && (
         <EditUserModal open={openEdit} onClose={handleCloseEdit} onEdit={handleUserModified} user={selectedUser} />
       )}

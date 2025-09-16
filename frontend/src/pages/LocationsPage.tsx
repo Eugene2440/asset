@@ -119,22 +119,22 @@ const LocationsPage = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Division</TableCell>
-              {user?.role === 'admin' && <TableCell>Actions</TableCell>}
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Name</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Division</TableCell>
+              {user?.role === 'admin' && <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredLocations.map((location) => (
               <TableRow key={location.id}>
-                <TableCell>{location.name}</TableCell>
-                <TableCell>{location.division}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{location.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{location.division}</TableCell>
                 {user?.role === 'admin' && (
-                  <TableCell>
-                    <IconButton onClick={() => alert('Edit functionality to be implemented')}>
+                  <TableCell sx={{ padding: '8px' }}>
+                    <IconButton onClick={() => alert('Edit functionality to be implemented')} size="small">
                       <EditIcon />
                     </IconButton>
-                    <IconButton onClick={() => handleDelete(location.id)}>
+                    <IconButton onClick={() => handleDelete(location.id)} size="small">
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
@@ -145,7 +145,7 @@ const LocationsPage = () => {
         </Table>
       </TableContainer>
 
-      <AddLocationModal open={open} onClose={handleClose} onAdd={handleAddLocation} />
+      <AddLocationModal open={open} onClose={handleClose} onLocationAdded={handleAddLocation} />
     </Box>
   );
 };

@@ -354,16 +354,16 @@ const AssetListPage = () => {
                   inputProps={{ 'aria-label': 'select all assets' }}
                 />
               </TableCell>
-              <TableCell>Tag No</TableCell>
-              <TableCell>Serial Number</TableCell>
-              <TableCell>OS Version</TableCell>
-              <TableCell>Asset Type</TableCell>
-              <TableCell>Asset Make</TableCell>
-              <TableCell>Asset Model</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Tag No</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Serial Number</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>OS Version</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Asset Type</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Asset Make</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Asset Model</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Location</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>User</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Status</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -387,21 +387,22 @@ const AssetListPage = () => {
                     inputProps={{ 'aria-labelledby': `enhanced-table-checkbox-${asset.id}` }}
                   />
                 </TableCell>
-                <TableCell component="th" scope="row">
-                  <Link to={`/assets/${asset.id}`}>{asset.tag_no}</Link>
+                <TableCell component="th" scope="row" sx={{ fontSize: '0.75rem', padding: '8px' }}>
+                  {asset.tag_no}
                 </TableCell>
-                <TableCell>{asset.serial_number}</TableCell>
-                <TableCell>{asset.os_version}</TableCell>
-                <TableCell>{asset.asset_type}</TableCell>
-                <TableCell>{asset.asset_make}</TableCell>
-                <TableCell>{asset.model}</TableCell>
-                <TableCell>{asset.location?.name}</TableCell>
-                <TableCell>{asset.assigned_user?.name}</TableCell>
-                <TableCell>{asset.status}</TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.serial_number}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.os_version}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.asset_type}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.asset_make}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.model}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.location?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.assigned_user?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{asset.status}</TableCell>
+                <TableCell sx={{ padding: '8px' }}>
                   <IconButton
                     aria-label="more"
                     onClick={(event) => handleMenuClick(event, asset)}
+                    size="small"
                   >
                     <MoreVertIcon />
                   </IconButton>
@@ -420,7 +421,7 @@ const AssetListPage = () => {
                 </TableCell>
               </TableRow>
               );
-            })}}
+            })}
           </TableBody>
         </Table>
         <TablePagination

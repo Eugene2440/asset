@@ -321,6 +321,23 @@ async def update_transfer(
     response['id'] = updated_transfer.id
     return response
 
+@router.delete("/{transfer_id}")
+async def delete_transfer(
+    transfer_id: str,
+    db = Depends(get_firestore_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to delete transfers")
+
+    transfer_ref = db.collection('transfers').document(transfer_id)
+    transfer = transfer_ref.get()
+    if not transfer.exists:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+
+    transfer_ref.delete()
+    return {"message": "Transfer deleted successfully"}
+
 @router.get("/pending/count")
 async def get_pending_transfers_count(
     db = Depends(get_firestore_db),

@@ -14,8 +14,8 @@ def initialize_firebase():
     if not service_account_key_path:
         raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY_PATH environment variable not set.")
     
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    absolute_key_path = os.path.join(project_root, service_account_key_path)
+    # Look for the file in the current directory (backend folder)
+    absolute_key_path = os.path.join(os.path.dirname(__file__), service_account_key_path)
 
     if not os.path.exists(absolute_key_path):
         raise FileNotFoundError(f"Firebase service account key file not found at: {absolute_key_path}")

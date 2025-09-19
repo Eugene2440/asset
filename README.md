@@ -62,17 +62,6 @@ A comprehensive web application for managing IT assets, transfers, and allocatio
    DATABASE_URL=sqlite:///./asset_management.db
    ```
 
-   **Important Security Note**: Never commit sensitive credentials to version control. 
-   For Firebase integration, use environment variables instead of service account files:
-   
-   ```bash
-   # Set Firebase credentials as environment variables
-   export FIREBASE_PROJECT_ID=your-project-id
-   export FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-   export FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-   # ... other Firebase variables (see .env.example)
-   ```
-
 6. Initialize the database:
    ```bash
    python init_db.py

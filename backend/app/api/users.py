@@ -4,6 +4,7 @@ from app.core.firebase import get_firestore_db
 from app.api.auth import get_current_user
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from collections import Counter
 
 router = APIRouter()
 
@@ -55,20 +56,84 @@ async def get_users(
     
     all_users = query.stream()
     
+    # Get all assets to calculate user locations
+    assets_ref = db.collection('assets')
+    all_assets = assets_ref.stream()
+    
+    # Build user location mapping based on assigned assets
+    user_locations = {}
+    location_cache = {}  # Cache for location documents
+    
+    for asset_doc in all_assets:
+        asset = asset_doc.to_dict()
+        
+        # Get user identifier from asset
+        user_ref = asset.get('user')
+        assigned_user_id = asset.get('assigned_user_id')
+        
+        user_identifier = None
+        if user_ref and hasattr(user_ref, 'id'):
+            user_identifier = user_ref.id
+        elif assigned_user_id:
+            user_identifier = assigned_user_id
+        
+        # Get location from asset
+        location_ref = asset.get('location')
+        location_id = asset.get('location_id')
+        
+        if user_identifier and (location_ref or location_id):
+            # Get location ID
+            loc_id = None
+            if location_ref and hasattr(location_ref, 'id'):
+                loc_id = location_ref.id
+            elif location_id:
+                loc_id = location_id
+            
+            if loc_id:
+                # Cache location data if not already cached
+                if loc_id not in location_cache:
+                    try:
+                        location_doc = db.collection('locations').document(loc_id).get()
+                        if location_doc.exists:
+                            location_data = location_doc.to_dict()
+                            location_cache[loc_id] = {
+                                "id": loc_id,
+                                "name": location_data.get('name', 'Unknown Location')
+                            }
+                        else:
+                            location_cache[loc_id] = None
+                    except:
+                        location_cache[loc_id] = None
+                
+                # Add location to user's location list
+                if user_identifier not in user_locations:
+                    user_locations[user_identifier] = []
+                
+                if location_cache[loc_id]:
+                    user_locations[user_identifier].append(location_cache[loc_id])
+    
     users_list = []
     for user in all_users:
         user_dict = user.to_dict()
         user_dict['id'] = user.id
         
+        # Calculate user's primary location based on assigned assets
         location = None
-        if user_dict.get('location_id'):
-            location_ref = db.collection('locations').document(user_dict['location_id'])
-            location_doc = location_ref.get()
-            if location_doc.exists:
-                location_data = location_doc.to_dict()
-                location = {"id": location_doc.id, "name": location_data.get('name')}
+        if user.id in user_locations and user_locations[user.id]:
+            # Count occurrences of each location
+            location_names = [loc['name'] for loc in user_locations[user.id]]
+            if location_names:
+                # Get the most common location
+                most_common = Counter(location_names).most_common(1)[0]
+                primary_location_name = most_common[0]
+                
+                # Find the location object for the most common location
+                for loc in user_locations[user.id]:
+                    if loc['name'] == primary_location_name:
+                        location = loc
+                        break
+        
         user_dict['location'] = location
-
         users_list.append(user_dict)
 
     return users_list[skip:skip+limit]
@@ -99,6 +164,7 @@ async def create_user(
     response = created_user.to_dict()
     response['id'] = created_user.id
     return response
+
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(

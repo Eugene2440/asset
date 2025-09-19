@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import AdminDashboard from '../components/dashboard/AdminDashboard.tsx';
 import UserDashboard from '../components/dashboard/UserDashboard.tsx';
 import AddAssetModal from '../components/modals/AddAssetModal.tsx';
-import AddUserModal from '../components/modals/AddUserModal.tsx';
 import AddLocationModal from '../components/modals/AddLocationModal.tsx';
 
 export default function DashboardPage() {
@@ -74,13 +73,7 @@ export default function DashboardPage() {
           // Optionally refresh data
         }}
       />
-      <AddUserModal
-        open={addUserModalOpen}
-        onClose={() => setAddUserModalOpen(false)}
-        onUserAdded={() => {
-          // Optionally refresh data
-        }}
-      />
+  
       <AddLocationModal
         open={addLocationModalOpen}
         onClose={() => setAddLocationModalOpen(false)}

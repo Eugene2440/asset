@@ -55,7 +55,6 @@ export default function Layout({ children }: Props) {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Assets', icon: <ComputerIcon />, path: '/assets' },
     { text: 'Transfers', icon: <SwapHorizIcon />, path: '/transfers' },
-    { text: 'Users', icon: <PeopleIcon />, path: '/users', adminOnly: true },
     { text: 'Locations', icon: <LocationIcon />, path: '/locations' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics', adminOnly: true },
   ];

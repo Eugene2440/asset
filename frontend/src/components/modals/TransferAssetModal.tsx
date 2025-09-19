@@ -89,56 +89,100 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Transfer Asset</DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <DialogTitle sx={{ fontSize: '1.1rem', py: 1.5 }}>Transfer Asset</DialogTitle>
+      <DialogContent sx={{ py: 1 }}>
+        {error && <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.875rem' }}>{error}</Alert>}
         {asset && (
-          <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Box>
-              <Typography variant="h6">{asset.name}</Typography>
-              <Typography color="textSecondary">Serial: {asset.serial_number}</Typography>
+              <Typography variant="h6" sx={{ fontSize: '1rem', mb: 0.5 }}>{asset.name}</Typography>
+              <Typography color="textSecondary" sx={{ fontSize: '0.75rem' }}>Serial: {asset.serial_number}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="body2">Current User</Typography>
-                <Typography variant="subtitle1">{asset.assigned_user?.name || 'N/A'}</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>Current User</Typography>
+                <Typography variant="subtitle1" sx={{ fontSize: '0.875rem' }}>{asset.assigned_user?.name || 'N/A'}</Typography>
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="body2">Current Location</Typography>
-                <Typography variant="subtitle1">{asset.location?.name || 'N/A'}</Typography>
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2">Requester</Typography>
-                <Typography variant="subtitle1">{currentUser?.name || 'N/A'}</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>Current Location</Typography>
+                <Typography variant="subtitle1" sx={{ fontSize: '0.875rem' }}>{asset.location?.name || 'N/A'}</Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
               <Autocomplete
                 options={users}
                 getOptionLabel={(option) => option.name || ''}
                 renderOption={(props, option) => (
-                  <li {...props} key={option.id}>
+                  <li {...props} key={option.id} style={{ fontSize: '0.875rem', padding: '4px 12px', minHeight: '32px' }}>
                     {option.name || 'Unnamed User'}
                   </li>
                 )}
                 onChange={(event, newValue) => {
                   setToUserId(newValue ? newValue.id : null);
                 }}
-                renderInput={(params) => <TextField {...params} label="New User" />}
+                renderInput={(params) => (
+                  <TextField 
+                    {...params} 
+                    label="New User" 
+                    size="small"
+                    sx={{ 
+                      '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+                      '& .MuiInputBase-input': { fontSize: '0.875rem' }
+                    }}
+                  />
+                )}
+                componentsProps={{
+                  popper: {
+                    sx: {
+                      '& .MuiAutocomplete-listbox': {
+                        fontSize: '0.875rem',
+                        '& .MuiAutocomplete-option': {
+                          fontSize: '0.875rem',
+                          minHeight: '32px',
+                          padding: '4px 12px'
+                        }
+                      }
+                    }
+                  }
+                }}
                 fullWidth
               />
               <Autocomplete
                 options={locations}
                 getOptionLabel={(option) => option.name || ''}
                 renderOption={(props, option) => (
-                  <li {...props} key={option.id}>
+                  <li {...props} key={option.id} style={{ fontSize: '0.875rem', padding: '4px 12px', minHeight: '32px' }}>
                     {option.name || 'Unnamed Location'}
                   </li>
                 )}
                 onChange={(event, newValue) => {
                   setToLocationId(newValue ? newValue.id : '');
                 }}
-                renderInput={(params) => <TextField {...params} label="New Location" />}
+                renderInput={(params) => (
+                  <TextField 
+                    {...params} 
+                    label="New Location" 
+                    size="small"
+                    sx={{ 
+                      '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+                      '& .MuiInputBase-input': { fontSize: '0.875rem' }
+                    }}
+                  />
+                )}
+                componentsProps={{
+                  popper: {
+                    sx: {
+                      '& .MuiAutocomplete-listbox': {
+                        fontSize: '0.875rem',
+                        '& .MuiAutocomplete-option': {
+                          fontSize: '0.875rem',
+                          minHeight: '32px',
+                          padding: '4px 12px'
+                        }
+                      }
+                    }
+                  }
+                }}
                 fullWidth
               />
             </Box>
@@ -148,6 +192,11 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
               onChange={(e) => setReason(e.target.value)}
               fullWidth
               required
+              size="small"
+              sx={{ 
+                '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+                '& .MuiInputBase-input': { fontSize: '0.875rem' }
+              }}
             />
             <TextField
               label="Damage Report"
@@ -155,29 +204,56 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
               onChange={(e) => setDamageReport(e.target.value)}
               fullWidth
               multiline
-              rows={3}
+              rows={2}
+              size="small"
+              sx={{ 
+                '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+                '& .MuiInputBase-input': { fontSize: '0.875rem' }
+              }}
             />
             
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Button variant="contained" component="label">
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              <Button 
+                variant="contained" 
+                component="label" 
+                size="small"
+                sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5 }}
+              >
                 Upload Photo
                 <input type="file" hidden onChange={handlePhotoChange} />
               </Button>
-              {photo && <Typography variant="body2">{photo.name}</Typography>}
+              {photo && <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{photo.name}</Typography>}
             </Box>
              <TextField
               label="Assigned To"
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
               fullWidth
+              size="small"
+              sx={{ 
+                '& .MuiInputLabel-root': { fontSize: '0.875rem' },
+                '& .MuiInputBase-input': { fontSize: '0.875rem' }
+              }}
             />
           </Box>
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={24} /> : 'Submit Request'}
+      <DialogActions sx={{ px: 3, py: 1.5 }}>
+        <Button 
+          onClick={onClose} 
+          size="small"
+          sx={{ fontSize: '0.875rem' }}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          disabled={loading}
+          size="small"
+          sx={{ fontSize: '0.875rem' }}
+        >
+          {loading ? <CircularProgress size={16} /> : 'Submit Request'}
         </Button>
       </DialogActions>
     </Dialog>

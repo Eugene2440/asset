@@ -2,10 +2,6 @@ from pydantic_settings import BaseSettings
 from typing import List, Optional
 import os
 
-from pydantic_settings import BaseSettings
-from typing import List, Optional
-import os
-
 class Settings(BaseSettings):
     # Firebase
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: Optional[str] = None

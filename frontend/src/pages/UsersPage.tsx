@@ -12,16 +12,14 @@ import {
   Paper,
   CircularProgress,
   Alert,
-  IconButton,
   TextField,
   InputAdornment,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
 import { usersAPI } from '../services/api.ts';
 import { User } from '../types/index.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import AddUserModal from '../components/modals/AddUserModal.tsx';
-import EditUserModal from '../components/modals/EditUserModal.tsx';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal.tsx';
 
 const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -29,7 +27,9 @@ const UsersPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { user: loggedInUser } = useAuth();
 
@@ -65,15 +65,28 @@ const UsersPage = () => {
     fetchUsers();
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await usersAPI.deleteUser(id);
-        fetchUsers();
-      } catch (err: any) {
-        setError(err.response?.data?.detail || 'Failed to delete user');
-      }
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setOpenDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    try {
+      await usersAPI.deleteUser(userToDelete.id);
+      setOpenDeleteConfirm(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to delete user');
+      setOpenDeleteConfirm(false);
+      setUserToDelete(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setOpenDeleteConfirm(false);
+    setUserToDelete(null);
   };
 
   const filteredUsers = users
@@ -101,11 +114,22 @@ const UsersPage = () => {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ fontSize: '1.125rem', fontWeight: 600 }}>
           Users
         </Typography>
         {loggedInUser?.role === 'admin' && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon sx={{ fontSize: '1rem' }} />} 
+            onClick={handleOpenAdd}
+            size="small"
+            sx={{ 
+              fontSize: '0.75rem', 
+              padding: '4px 12px',
+              minWidth: 'auto',
+              height: '32px'
+            }}
+          >
             Add User
           </Button>
         )}
@@ -134,7 +158,6 @@ const UsersPage = () => {
             <TableRow>
               <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Name</TableCell>
               <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Location</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Active</TableCell>
               {loggedInUser?.role === 'admin' && <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Actions</TableCell>}
             </TableRow>
           </TableHead>
@@ -143,15 +166,26 @@ const UsersPage = () => {
               <TableRow key={user.id}>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{user.name}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{user.location?.name || 'N/A'}</TableCell>
-                <TableCell sx={{ fontSize: '0.75rem', padding: '8px' }}>{user.is_active ? 'Yes' : 'No'}</TableCell>
                 {loggedInUser?.role === 'admin' && (
                   <TableCell sx={{ padding: '8px' }}>
-                    <IconButton onClick={() => handleOpenEdit(user)} size="small">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(user.id)} size="small">
-                      <DeleteIcon />
-                    </IconButton>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => handleOpenEdit(user)}
+                      sx={{ mr: 1, fontSize: '0.65rem' }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      size="small"
+                      onClick={() => handleDeleteClick(user)}
+                      sx={{ fontSize: '0.65rem' }}
+                    >
+                      Delete
+                    </Button>
                   </TableCell>
                 )}
               </TableRow>
@@ -159,11 +193,6 @@ const UsersPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      <AddUserModal open={openAdd} onClose={handleCloseAdd} onUserAdded={handleUserModified} />
-      {selectedUser && (
-        <EditUserModal open={openEdit} onClose={handleCloseEdit} onEdit={handleUserModified} user={selectedUser} />
-      )}
     </Box>
   );
 };

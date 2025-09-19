@@ -1,13 +1,44 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.core.firebase import get_firestore_db
 from app.api.auth import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
 from google.cloud.firestore_v1.document import DocumentReference
 from google.cloud.firestore_v1 import query as firestore_query
+import asyncio
+from functools import lru_cache
+import time
 
 router = APIRouter()
+
+# Cache for frequently accessed reference data
+_cache = {
+    'locations': {},
+    'asset_models': {},
+    'asset_statuses': {},
+    'users': {},
+    'last_updated': {
+        'locations': 0,
+        'asset_models': 0,
+        'asset_statuses': 0,
+        'users': 0
+    }
+}
+
+CACHE_TTL = 300  # 5 minutes cache
+
+async def _get_cached_reference_data(db, collection_name: str) -> Dict[str, Any]:
+    """Get cached reference data with TTL"""
+    current_time = time.time()
+    
+    if (current_time - _cache['last_updated'][collection_name]) > CACHE_TTL:
+        # Cache expired, refresh
+        docs = db.collection(collection_name).stream()
+        _cache[collection_name] = {doc.id: convert_doc_refs(doc.to_dict()) for doc in docs}
+        _cache['last_updated'][collection_name] = current_time
+    
+    return _cache[collection_name]
 
 def convert_doc_refs(data):
     if isinstance(data, dict):
@@ -19,6 +50,67 @@ def convert_doc_refs(data):
     elif isinstance(data, DocumentReference):
         return data.id
     return data
+
+async def _get_populated_assets_optimized(asset_docs: list, db) -> list:
+    """Optimized version using cached reference data"""
+    if not asset_docs:
+        return []
+    
+    # Get all reference data in parallel using cache
+    locations_cache, models_cache, statuses_cache, users_cache = await asyncio.gather(
+        _get_cached_reference_data(db, 'locations'),
+        _get_cached_reference_data(db, 'asset_models'),
+        _get_cached_reference_data(db, 'asset_statuses'),
+        _get_cached_reference_data(db, 'users'),
+        return_exceptions=True
+    )
+    
+    # Handle any exceptions in cache loading
+    if isinstance(locations_cache, Exception):
+        locations_cache = {}
+    if isinstance(models_cache, Exception):
+        models_cache = {}
+    if isinstance(statuses_cache, Exception):
+        statuses_cache = {}
+    if isinstance(users_cache, Exception):
+        users_cache = {}
+
+    assets_list = []
+    for doc in asset_docs:
+        asset = convert_doc_refs(doc.to_dict())
+        asset['id'] = doc.id
+
+        # Populate location from cache
+        if asset.get('location'):
+            location_id = asset['location'] if isinstance(asset['location'], str) else asset['location'].id
+            asset['location'] = locations_cache.get(location_id)
+        
+        # Populate user from cache
+        if asset.get('user'):
+            user_id = asset['user'] if isinstance(asset['user'], str) else asset['user'].id
+            user_data = users_cache.get(user_id)
+            if user_data:
+                asset['assigned_user'] = user_data
+
+        # Populate model data from cache
+        if asset.get('asset_model'):
+            model_id = asset['asset_model'] if isinstance(asset['asset_model'], str) else asset['asset_model'].id
+            model_data = models_cache.get(model_id)
+            if model_data:
+                asset['asset_type'] = model_data.get('asset_type')
+                asset['asset_make'] = model_data.get('asset_make')
+                asset['model'] = model_data.get('asset_model')
+
+        # Populate status from cache
+        if asset.get('asset_status'):
+            status_id = asset['asset_status'] if isinstance(asset['asset_status'], str) else asset['asset_status'].id
+            status_data = statuses_cache.get(status_id)
+            if status_data:
+                asset['status'] = status_data.get('status_name')
+
+        assets_list.append(asset)
+    
+    return assets_list
 
 async def _get_populated_assets(asset_docs: list, db) -> list:
     location_refs = set()
@@ -165,7 +257,7 @@ async def get_asset(
     if not asset.exists:
         raise HTTPException(status_code=404, detail="Asset not found")
     
-    populated_asset = await _get_populated_assets([asset], db)
+    populated_asset = await _get_populated_assets_optimized([asset], db)
     if not populated_asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return populated_asset[0]
@@ -189,30 +281,39 @@ async def get_assets(
 
     # Apply server-side filters
     if category:
-        query = query.where('category', '==', category)
+        # Optimize category filtering by using cached asset models
+        models_cache = await _get_cached_reference_data(db, 'asset_models')
+        matching_model_ids = [
+            model_id for model_id, model_data in models_cache.items()
+            if model_data.get('asset_type') == category
+        ]
+        
+        if matching_model_ids:
+            # Limit to first 10 due to Firestore 'in' constraint
+            model_refs = [db.collection('asset_models').document(model_id) for model_id in matching_model_ids[:10]]
+            query = query.where('asset_model', 'in', model_refs)
     if status:
         status_ref = db.collection('asset_statuses').document(status.replace('/', '-'))
         query = query.where('asset_status', '==', status_ref)
     if assigned_user_id:
         query = query.where('assigned_user_id', '==', assigned_user_id)
     if location_id:
-        query = query.where('location_id', '==', location_id)
+        location_ref = db.collection('locations').document(location_id)
+        query = query.where('location', '==', location_ref)
 
     # The search_query requires in-memory filtering due to Firestore limitations on partial text search.
     # This part remains inefficient. For a production-grade solution, consider a dedicated search service
     # like Algolia or Elasticsearch.
     if search_query:
         all_assets_docs = list(query.stream())
-        assets_list = await _get_populated_assets(all_assets_docs, db)
+        assets_list = await _get_populated_assets_optimized(all_assets_docs, db)
         
         search_query_lower = search_query.lower()
         assets_list = [
             asset for asset in assets_list if
-            (search_query_lower in str(asset.get('tag_no') or '').lower()) or
-            (search_query_lower in str(asset.get('serial_number') or '').lower()) or
-            (search_query_lower in str(asset.get('model') or '').lower()) or
-            (search_query_lower in str(asset.get('asset_make') or '').lower()) or
-            (search_query_lower in str(asset.get('asset_type') or '').lower())
+            # Search only in assigned user name
+            (asset.get('assigned_user') and 
+             search_query_lower in str(asset.get('assigned_user', {}).get('name') or '').lower())
         ]
         
         total_count = len(assets_list)
@@ -245,7 +346,7 @@ async def get_assets(
         
         asset_docs = list(paginated_query.stream())
         
-        assets_list = await _get_populated_assets(asset_docs, db)
+        assets_list = await _get_populated_assets_optimized(asset_docs, db)
 
         return PaginatedAssetResponse(total_count=total_count, assets=assets_list)
 

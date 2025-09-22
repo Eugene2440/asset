@@ -105,25 +105,108 @@ export default function UserDashboard() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="200px"
+        sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: 2,
+          color: 'white'
+        }}
+      >
+        <CircularProgress sx={{ color: 'white' }} />
       </Box>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Welcome, {user?.full_name}
-      </Typography>
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" gutterBottom>
+    <Box sx={{ 
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      minHeight: '100vh',
+      p: 3,
+      borderRadius: 2
+    }}>
+      <Box sx={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: 3,
+        p: 4,
+        mb: 4,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+      }}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            color: 'white',
+            fontWeight: 700,
+            textAlign: 'center',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}
+        >
+          Welcome, {user?.name}
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'rgba(255,255,255,0.8)',
+            textAlign: 'center',
+            mt: 1,
+            fontWeight: 300
+          }}
+        >
+          Manage Your Assets & Transfers
+        </Typography>
+      </Box>
+      
+      <Paper sx={{ 
+        p: 4, 
+        mt: 3,
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+        borderRadius: 3
+      }}>
+        <Typography 
+          variant="h5" 
+          gutterBottom
+          sx={{ 
+            fontWeight: 700,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            mb: 3
+          }}
+        >
           Your Asset Transfers
         </Typography>
-        <Box component="form" onSubmit={handleTransferSubmit} sx={{ mt: 2, mb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="h6">Request New Asset Transfer</Typography>
-          {error && <Alert severity="error">{error}</Alert>}
-          {formSuccess && <Alert severity="success">Transfer request submitted successfully!</Alert>}
+        <Box 
+          component="form" 
+          onSubmit={handleTransferSubmit} 
+          sx={{ 
+            mt: 2, 
+            mb: 4, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 2,
+            p: 3,
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            borderRadius: 2,
+            border: '1px solid #e0e0e0'
+          }}
+        >
+          <Typography 
+            variant="h6"
+            sx={{ 
+              fontWeight: 600,
+              color: '#333',
+              mb: 1
+            }}
+          >
+            Request New Asset Transfer
+          </Typography>
+          {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+          {formSuccess && <Alert severity="success" sx={{ borderRadius: 2 }}>Transfer request submitted successfully!</Alert>}
           <TextField
             select
             label="Asset"
@@ -167,7 +250,7 @@ export default function UserDashboard() {
             <MenuItem value="">None</MenuItem>
             {users.map((u) => (
               <MenuItem key={u.id} value={u.id}>
-                {u.full_name}
+                {u.name}
               </MenuItem>
             ))}
           </TextField>
@@ -186,12 +269,44 @@ export default function UserDashboard() {
               </MenuItem>
             ))}
           </TextField>
-          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            color="primary" 
+            disabled={loading}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: 2,
+              py: 1.5,
+              fontWeight: 600,
+              textTransform: 'none',
+              fontSize: '1rem',
+              boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)'
+              },
+              '&:disabled': {
+                background: '#ccc',
+                transform: 'none',
+                boxShadow: 'none'
+              }
+            }}
+          >
             Request Transfer
           </Button>
         </Box>
 
-        <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            mt: 4, 
+            mb: 3,
+            fontWeight: 600,
+            color: '#333'
+          }}
+        >
           Your Pending Transfer Requests
         </Typography>
         {loading ? (
@@ -199,30 +314,55 @@ export default function UserDashboard() {
             <CircularProgress />
           </Box>
         ) : userTransfers.length === 0 ? (
-          <Typography>No transfer requests found.</Typography>
+          <Box sx={{ 
+            textAlign: 'center', 
+            p: 4,
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            borderRadius: 2,
+            border: '1px solid #e0e0e0'
+          }}>
+            <Typography sx={{ color: '#666', fontSize: '1.1rem' }}>
+              No transfer requests found.
+            </Typography>
+          </Box>
         ) : (
-          <TableContainer component={Paper}>
+          <TableContainer 
+            component={Paper}
+            sx={{
+              boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+              borderRadius: 2,
+              overflow: 'hidden'
+            }}
+          >
             <Table>
-              <TableHead>
+              <TableHead sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Asset</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Requested At</TableCell>
-                  <TableCell>To User</TableCell>
-                  <TableCell>To Location</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>ID</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Asset</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Reason</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Requested At</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>To User</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>To Location</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {userTransfers.map((transfer) => (
-                  <TableRow key={transfer.id}>
+                {userTransfers.map((transfer, index) => (
+                  <TableRow 
+                    key={transfer.id}
+                    sx={{
+                      backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white',
+                      '&:hover': {
+                        backgroundColor: '#e3f2fd'
+                      }
+                    }}
+                  >
                     <TableCell>{transfer.id}</TableCell>
                     <TableCell>{userAssets.find(a => a.id === transfer.asset_id)?.name || 'N/A'}</TableCell>
                     <TableCell>{transfer.reason}</TableCell>
                     <TableCell>{transfer.status}</TableCell>
-                    <TableCell>{new Date(transfer.requested_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{users.find(u => u.id === transfer.to_user_id)?.full_name || 'N/A'}</TableCell>
+                    <TableCell>{transfer.requested_at ? new Date(transfer.requested_at).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{users.find(u => u.id === transfer.to_user_id)?.name || 'N/A'}</TableCell>
                     <TableCell>{locations.find(loc => loc.id === transfer.to_location_id)?.name || 'N/A'}</TableCell>
                   </TableRow>
                 ))}

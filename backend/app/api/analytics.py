@@ -25,6 +25,10 @@ class AssetCategoryReport(BaseModel):
     category: str
     count: int
 
+class AssetTypeReport(BaseModel):
+    asset_type: str
+    count: int
+
 class LocationAssetReport(BaseModel):
     location_id: str
     location_name: str
@@ -103,6 +107,51 @@ async def get_assets_by_category(
         category_counts[asset.to_dict().get('category', 'UNKNOWN')] += 1
     
     return [AssetCategoryReport(category=category, count=count) for category, count in category_counts.items()]
+
+@router.get("/assets/by-type", response_model=List[AssetTypeReport])
+async def get_assets_by_type(
+    db = Depends(get_firestore_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get all assets and their associated asset models to get asset types
+    assets = db.collection('assets').stream()
+    asset_models = {doc.id: doc.to_dict() for doc in db.collection('asset_models').stream()}
+    
+    # Define main asset types to show separately
+    main_types = {'Desktop', 'Headset', 'Laptop'}
+    type_counts = defaultdict(int)
+    other_count = 0
+    
+    for asset in assets:
+        asset_data = asset.to_dict()
+        # Check if asset has asset_type directly or through asset_model reference
+        asset_type = asset_data.get('asset_type')
+        if not asset_type and asset_data.get('asset_model'):
+            # If asset_model is a reference, get the ID
+            model_id = asset_data['asset_model']
+            if hasattr(model_id, 'id'):
+                model_id = model_id.id
+            model_data = asset_models.get(model_id, {})
+            asset_type = model_data.get('asset_type', 'UNKNOWN')
+        
+        if not asset_type:
+            asset_type = 'UNKNOWN'
+        
+        # Group asset types: show Desktop, Headset, Laptop separately, others as "Other"
+        if asset_type in main_types:
+            type_counts[asset_type] += 1
+        else:
+            other_count += 1
+    
+    # Build the result with main types and "Other" category
+    result = [AssetTypeReport(asset_type=asset_type, count=count) for asset_type, count in type_counts.items()]
+    if other_count > 0:
+        result.append(AssetTypeReport(asset_type="Other", count=other_count))
+    
+    return result
 
 @router.get("/assets/by-location", response_model=List[LocationAssetReport])
 async def get_assets_by_location(

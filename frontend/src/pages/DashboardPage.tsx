@@ -39,8 +39,18 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="400px"
+        sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: 2,
+          color: 'white'
+        }}
+      >
+        <CircularProgress sx={{ color: 'white' }} />
       </Box>
     );
   }
@@ -54,7 +64,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ 
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      minHeight: '100vh',
+      p: 3,
+      borderRadius: 2
+    }}>
       {isAdmin && stats ? (
         <AdminDashboard
           stats={stats}

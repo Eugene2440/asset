@@ -43,6 +43,10 @@ export const analyticsAPI = {
     const response = await apiClient.get('/api/analytics/assets/by-category');
     return response.data;
   },
+  getAssetsByType: async (): Promise<any> => {
+    const response = await apiClient.get('/api/analytics/assets/by-type');
+    return response.data;
+  },
   getAssetsByStatus: async (): Promise<any> => {
     const response = await apiClient.get('/api/analytics/assets/by-status');
     return response.data;

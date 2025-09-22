@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import { analyticsAPI } from '../../../services/api.ts';
 import { Box, Typography } from '@mui/material';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const AssetCategoryChart = () => {
   const [data, setData] = useState([]);
@@ -11,10 +11,17 @@ const AssetCategoryChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await analyticsAPI.getAssetsByCategory();
+        // Try to get assets by type first, fallback to category
+        let result;
+        try {
+          result = await analyticsAPI.getAssetsByType();
+        } catch (error) {
+          console.log('Assets by type endpoint not available, trying category');
+          result = await analyticsAPI.getAssetsByCategory();
+        }
         setData(result);
       } catch (error) {
-        console.error('Failed to fetch asset category data', error);
+        console.error('Failed to fetch asset data', error);
       }
     };
     fetchData();
@@ -23,7 +30,7 @@ const AssetCategoryChart = () => {
   return (
     <Box sx={{ height: 300 }}>
       <Typography variant="h6" gutterBottom>
-        Assets by Category
+        Assets by Type
       </Typography>
       <ResponsiveContainer width="100%" height="80%">
         <PieChart>
@@ -35,7 +42,7 @@ const AssetCategoryChart = () => {
             outerRadius={80}
             fill="#8884d8"
             dataKey="count"
-            nameKey="category"
+            nameKey="asset_type"
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

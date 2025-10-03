@@ -17,13 +17,14 @@ export default function StatCard({ title, value, icon, color }: StatCardProps) {
   return (
     <Card sx={{ 
       height: '100%',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+      background: '#ffffff',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
       borderRadius: 3,
+      border: '1px solid rgba(0,0,0,0.05)',
       transition: 'all 0.3s ease-in-out',
       '&:hover': {
         transform: 'translateY(-5px)',
-        boxShadow: '0 15px 40px rgba(0,0,0,0.15)'
+        boxShadow: '0 8px 30px rgba(0,0,0,0.18)'
       }
     }}>
       <CardContent sx={{ p: 3 }}>

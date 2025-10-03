@@ -20,6 +20,7 @@ import { usersAPI } from '../services/api.ts';
 import { User } from '../types/index.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal.tsx';
+import AddUserModal from '../components/modals/AddUserModal.tsx';
 
 const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -51,6 +52,11 @@ const UsersPage = () => {
 
   const handleOpenAdd = () => setOpenAdd(true);
   const handleCloseAdd = () => setOpenAdd(false);
+
+  const handleUserAdded = () => {
+    fetchUsers();
+    setOpenAdd(false);
+  };
 
   const handleOpenEdit = (user: User) => {
     setSelectedUser(user);
@@ -193,6 +199,20 @@ const UsersPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <AddUserModal
+        open={openAdd}
+        onClose={handleCloseAdd}
+        onUserAdded={handleUserAdded}
+      />
+
+      <DeleteConfirmationModal
+        open={openDeleteConfirm}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete User"
+        message={`Are you sure you want to delete ${userToDelete?.name}?`}
+      />
     </Box>
   );
 };

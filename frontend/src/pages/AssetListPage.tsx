@@ -33,6 +33,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { assetsAPI, locationsAPI } from '../services/api.ts';
 import { Asset } from '../types';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { useResponsiveRowsPerPage } from '../hooks/useResponsiveRowsPerPage.ts';
 import TransferAssetModal from '../components/modals/TransferAssetModal.tsx';
 import AllocateDeviceModal from '../components/modals/AllocateDeviceModal.tsx';
 import BulkUpdateStatusModal from '../components/modals/BulkUpdateStatusModal.tsx';
@@ -62,7 +63,8 @@ const AssetListPage = () => {
   const [selected, setSelected] = useState<string[]>([]);
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { defaultRowsPerPage, rowsPerPageOptions } = useResponsiveRowsPerPage();
+  const [rowsPerPage, setRowsPerPage] = useState(defaultRowsPerPage);
   const [totalCount, setTotalCount] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -576,10 +578,10 @@ const AssetListPage = () => {
         }
       }}>
         <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 1200 }} aria-label="asset table">
+        <Table sx={{ minWidth: 1400 }} aria-label="asset table">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox" sx={{ padding: '4px' }}>
+              <TableCell padding="checkbox" sx={{ padding: '4px', width: '40px' }}>
                 <Checkbox
                   indeterminate={selected.length > 0 && selected.length < assets.length}
                   checked={assets.length > 0 && selected.length === assets.length}
@@ -593,16 +595,16 @@ const AssetListPage = () => {
                   }}
                 />
               </TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Tag No</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Serial Number</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>OS Version</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Asset Type</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Asset Make</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Asset Model</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Location</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>User</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Status</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px' }}>Actions</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px', width: '80px' }}>Tag No</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px', width: '140px' }}>Serial Number</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px', width: '100px' }}>OS Version</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', width: '120px', wordWrap: 'break-word' }}>Asset Type</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', width: '120px', wordWrap: 'break-word' }}>Asset Make</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', width: '150px', wordWrap: 'break-word' }}>Asset Model</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', width: '140px', wordWrap: 'break-word' }}>Location</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 8px', width: '120px', wordWrap: 'break-word' }}>User</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px', width: '90px' }}>Status</TableCell>
+              <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '4px 8px', width: '70px' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -637,11 +639,17 @@ const AssetListPage = () => {
                 </TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.serial_number}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.os_version}</TableCell>
-                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.asset_type}</TableCell>
-                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.asset_make}</TableCell>
-                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.model}</TableCell>
-                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.location?.name}</TableCell>
-                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.assigned_user?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', wordWrap: 'break-word', maxWidth: '120px' }}>
+                  {asset.category || asset.asset_type || (asset.model && !asset.category && !asset.asset_type ? asset.model.split('-')[0] : '')}
+                </TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', wordWrap: 'break-word', maxWidth: '120px' }}>
+                  {asset.brand || asset.asset_make || (asset.model && !asset.brand && !asset.asset_make ? asset.model.split('-')[1] : '')}
+                </TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', wordWrap: 'break-word', maxWidth: '150px' }}>
+                  {asset.asset_model || asset.model}
+                </TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', wordWrap: 'break-word', maxWidth: '140px' }}>{asset.location?.name}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', wordWrap: 'break-word', maxWidth: '120px' }}>{asset.assigned_user?.name}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '4px 8px', whiteSpace: 'nowrap' }}>{asset.status}</TableCell>
                 <TableCell sx={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>
                   <IconButton
@@ -680,7 +688,7 @@ const AssetListPage = () => {
           </TableBody>
         </Table>
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
+          rowsPerPageOptions={rowsPerPageOptions}
           component="div"
           count={totalCount}
           rowsPerPage={rowsPerPage}

@@ -22,7 +22,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  InputAdornment,
+  Grid,
 } from '@mui/material';
+import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { assetsAPI } from '../services/api.ts';
 import { Transfer } from '../types';
@@ -32,6 +35,9 @@ const TransfersPage = () => {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [filteredTransfers, setFilteredTransfers] = useState<Transfer[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -68,31 +74,84 @@ const TransfersPage = () => {
     }
   };
 
-  // Filter transfers based on status
-  const filterTransfers = (statusFilter: string, transfersList: Transfer[]) => {
-    if (statusFilter === 'All') {
-      return transfersList;
+  // Filter transfers based on multiple criteria
+  const filterTransfers = (statusFilter: string, searchTerm: string, dateFrom: string, dateTo: string, transfersList: Transfer[]) => {
+    let filtered = transfersList;
+
+    // Status filter
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(transfer => 
+        transfer.status?.toUpperCase() === statusFilter.toUpperCase()
+      );
     }
-    return transfersList.filter(transfer => 
-      transfer.status?.toUpperCase() === statusFilter.toUpperCase()
-    );
+
+    // Search term filter (asset name, serial, user names)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(transfer => 
+        transfer.asset?.name?.toLowerCase().includes(term) ||
+        transfer.asset?.serial_number?.toLowerCase().includes(term) ||
+        transfer.asset?.asset_tag?.toLowerCase().includes(term) ||
+        transfer.requester?.name?.toLowerCase().includes(term) ||
+        transfer.from_user?.name?.toLowerCase().includes(term) ||
+        transfer.to_user?.name?.toLowerCase().includes(term) ||
+        transfer.reason?.toLowerCase().includes(term)
+      );
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter(transfer => {
+        if (!transfer.requested_at) return false;
+        const transferDate = new Date(transfer.requested_at).toISOString().split('T')[0];
+        
+        if (dateFrom && dateTo) {
+          return transferDate >= dateFrom && transferDate <= dateTo;
+        } else if (dateFrom) {
+          return transferDate >= dateFrom;
+        } else if (dateTo) {
+          return transferDate <= dateTo;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
   };
 
-  // Handle status filter change
+  // Handle filter changes
   const handleStatusFilterChange = (event: any) => {
     const newStatusFilter = event.target.value;
     setStatusFilter(newStatusFilter);
-    setFilteredTransfers(filterTransfers(newStatusFilter, transfers));
+  };
+
+  const handleSearchChange = (event: any) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleDateFromChange = (event: any) => {
+    setDateFrom(event.target.value);
+  };
+
+  const handleDateToChange = (event: any) => {
+    setDateTo(event.target.value);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('All');
+    setDateFrom('');
+    setDateTo('');
   };
 
   useEffect(() => {
     fetchTransfers();
   }, []);
 
-  // Update filtered transfers when transfers or status filter changes
+  // Update filtered transfers when any filter changes
   useEffect(() => {
-    setFilteredTransfers(filterTransfers(statusFilter, transfers));
-  }, [transfers, statusFilter]);
+    setFilteredTransfers(filterTransfers(statusFilter, searchTerm, dateFrom, dateTo, transfers));
+  }, [transfers, statusFilter, searchTerm, dateFrom, dateTo]);
 
   const handleRowClick = (transferId: string) => {
     navigate(`/transfers/${transferId}`);
@@ -150,28 +209,11 @@ const TransfersPage = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" gutterBottom sx={{ fontSize: '1.125rem', fontWeight: 600 }}>
-          Asset Transfers
-        </Typography>
-        <Box display="flex" alignItems="center" gap={2}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel sx={{ fontSize: '0.75rem' }}>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Status"
-              onChange={handleStatusFilterChange}
-              sx={{ 
-                fontSize: '0.75rem',
-                height: '32px'
-              }}
-            >
-              <MenuItem value="All" sx={{ fontSize: '0.75rem' }}>All</MenuItem>
-              <MenuItem value="PENDING" sx={{ fontSize: '0.75rem' }}>Pending</MenuItem>
-              <MenuItem value="APPROVED" sx={{ fontSize: '0.75rem' }}>Accepted</MenuItem>
-              <MenuItem value="REJECTED" sx={{ fontSize: '0.75rem' }}>Rejected</MenuItem>
-            </Select>
-          </FormControl>
+      <Box mb={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: '1.125rem', fontWeight: 600 }}>
+            Asset Transfers ({filteredTransfers.length})
+          </Typography>
           <Button
             variant="contained"
             component={RouterLink}
@@ -187,6 +229,79 @@ const TransfersPage = () => {
             Initiate Transfer
           </Button>
         </Box>
+        
+        {/* Search and Filter Controls */}
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search by asset, user, or reason..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: '1rem' }} />
+                  </InputAdornment>
+                ),
+                sx: { fontSize: '0.875rem' }
+              }}
+            />
+          </Grid>
+          <Grid item xs={6} sm={2}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="From Date"
+              value={dateFrom}
+              onChange={handleDateFromChange}
+              InputLabelProps={{ shrink: true, sx: { fontSize: '0.75rem' } }}
+              inputProps={{ sx: { fontSize: '0.75rem' } }}
+            />
+          </Grid>
+          <Grid item xs={6} sm={2}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="To Date"
+              value={dateTo}
+              onChange={handleDateToChange}
+              InputLabelProps={{ shrink: true, sx: { fontSize: '0.75rem' } }}
+              inputProps={{ sx: { fontSize: '0.75rem' } }}
+            />
+          </Grid>
+          <Grid item xs={6} sm={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel sx={{ fontSize: '0.75rem' }}>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={handleStatusFilterChange}
+                sx={{ fontSize: '0.75rem' }}
+              >
+                <MenuItem value="All" sx={{ fontSize: '0.75rem' }}>All</MenuItem>
+                <MenuItem value="PENDING" sx={{ fontSize: '0.75rem' }}>Pending</MenuItem>
+                <MenuItem value="APPROVED" sx={{ fontSize: '0.75rem' }}>Approved</MenuItem>
+                <MenuItem value="REJECTED" sx={{ fontSize: '0.75rem' }}>Rejected</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} sm={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              onClick={clearFilters}
+              startIcon={<ClearIcon sx={{ fontSize: '0.875rem' }} />}
+              sx={{ fontSize: '0.75rem', height: '32px' }}
+            >
+              Clear
+            </Button>
+          </Grid>
+        </Grid>
       </Box>
       <Box sx={{ overflowX: 'auto', width: '100%' }}>
         <TableContainer component={Paper}>
@@ -211,7 +326,9 @@ const TransfersPage = () => {
                 onClick={() => handleRowClick(transfer.id)}
                 sx={{ cursor: 'pointer' }}
               >
-                <TableCell sx={{ fontSize: '0.75rem', padding: '8px 8px', whiteSpace: 'nowrap' }}>{transfer.asset?.asset_model}</TableCell>
+                <TableCell sx={{ fontSize: '0.75rem', padding: '8px 8px', whiteSpace: 'nowrap' }}>
+                  {transfer.asset?.asset_tag || transfer.asset?.name || transfer.asset?.asset_type || 'N/A'}
+                </TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '8px 8px', whiteSpace: 'nowrap' }}>{transfer.from_user?.name}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '8px 8px', whiteSpace: 'nowrap' }}>{transfer.to_user?.name}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem', padding: '8px 8px', whiteSpace: 'nowrap' }}>{transfer.from_location?.name}</TableCell>

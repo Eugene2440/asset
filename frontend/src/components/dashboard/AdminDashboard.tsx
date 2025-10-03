@@ -17,7 +17,7 @@ import {
 import StatCard from './StatCard.tsx';
 import QuickActions from './QuickActions.tsx';
 import { DashboardStats } from '../../types/index.ts';
-import AssetStatusChart from './charts/AssetStatusChart.tsx';
+import RecentActivities from './RecentActivities.tsx';
 import AssetCategoryChart from './charts/AssetCategoryChart.tsx';
 
 interface AdminDashboardProps {
@@ -93,18 +93,20 @@ export default function AdminDashboard({ stats, onAddAsset, onAddUser, onAddLoca
         mb: 3
       }}>
         <Card sx={{ 
-          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
           borderRadius: 3,
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)'
+          background: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.05)'
         }}>
           <CardContent>
-            <AssetStatusChart />
+            <RecentActivities />
           </CardContent>
         </Card>
         <Card sx={{ 
-          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
           borderRadius: 3,
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)'
+          background: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.05)'
         }}>
           <CardContent>
             <AssetCategoryChart />
@@ -113,9 +115,10 @@ export default function AdminDashboard({ stats, onAddAsset, onAddUser, onAddLoca
       </Box>
       
       <Card sx={{ 
-        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
         borderRadius: 3,
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)'
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.05)'
       }}>
         <CardContent>
           <QuickActions 

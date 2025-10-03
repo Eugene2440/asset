@@ -70,12 +70,11 @@ const TransferAssetModal: React.FC<TransferAssetModalProps> = ({ open, onClose, 
     try {
       await assetsAPI.createTransfer({
         asset_id: asset.id,
-        to_user_id: toUserId,
+        to_user_id: toUserId || null,
         to_location_id: toLocationId || null,
-        reason,
-        damage_report: damageReport,
-        assigned_to_id: assignedTo,
-        // photo_url will be handled by the backend, for now, we send the name
+        reason: reason || '',
+        damage_report: damageReport || null,
+        assigned_to_id: assignedTo || null,
         photo_url: photo ? photo.name : null,
       });
       onTransferSuccess();

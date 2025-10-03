@@ -24,7 +24,6 @@ import {
   SwapHoriz as SwapHorizIcon,
   People as PeopleIcon,
   LocationOn as LocationIcon,
-  Analytics as AnalyticsIcon,
   AccountCircle,
   Logout,
 } from '@mui/icons-material';
@@ -56,7 +55,7 @@ export default function Layout({ children }: Props) {
     { text: 'Assets', icon: <ComputerIcon />, path: '/assets' },
     { text: 'Transfers', icon: <SwapHorizIcon />, path: '/transfers' },
     { text: 'Locations', icon: <LocationIcon />, path: '/locations' },
-    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics', adminOnly: true },
+    { text: 'Users', icon: <PeopleIcon />, path: '/users', adminOnly: true },
   ];
 
   const handleDrawerToggle = () => {
@@ -128,7 +127,7 @@ export default function Layout({ children }: Props) {
           </Typography>
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2">{user?.full_name}</Typography>
+            <Typography variant="body2">{user?.name || user?.full_name}</Typography>
             <IconButton
               size="large"
               aria-label="account menu"
@@ -138,7 +137,7 @@ export default function Layout({ children }: Props) {
               color="inherit"
             >
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                {user?.full_name?.[0]?.toUpperCase()}
+                {(user?.name || user?.full_name)?.[0]?.toUpperCase()}
               </Avatar>
             </IconButton>
           </Box>

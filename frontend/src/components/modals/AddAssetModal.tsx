@@ -8,6 +8,7 @@ import {
   CircularProgress,
   Alert,
   MenuItem,
+  Autocomplete,
 } from '@mui/material';
 import { assetsAPI, usersAPI, locationsAPI } from '../../services/api.ts';
 import { User, Location, AssetCategory, AssetStatus } from '../../types/index.ts';
@@ -32,20 +33,16 @@ const modalStyle = {
 
 export default function AddAssetModal({ open, onClose, onAssetAdded }: AddAssetModalProps) {
   const [formData, setFormData] = useState({
-    asset_tag: '',
-    name: '',
-    category: '',
-    brand: '',
-    model: '',
+    asset_type: '',
+    asset_make: '',
+    asset_model: '',
+    tag_no: '',
     serial_number: '',
-    status: AssetStatus.ACTIVE,
-    purchase_date: '',
-    warranty_expiry: '',
-    description: '',
-    specifications: '',
     assigned_user_id: '',
     location_id: '',
+    os_version: '',
   });
+  const [assetModels, setAssetModels] = useState([]);
   const [users, setUsers] = useState<User[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,12 +52,16 @@ export default function AddAssetModal({ open, onClose, onAssetAdded }: AddAssetM
     if (open) {
       const fetchData = async () => {
         try {
-          const usersData = await usersAPI.getUsers();
+          const [usersData, locationsData, modelsData] = await Promise.all([
+            usersAPI.getUsers(),
+            locationsAPI.getLocations(),
+            assetsAPI.getAssetModels()
+          ]);
           setUsers(usersData);
-          const locationsData = await locationsAPI.getLocations();
           setLocations(locationsData);
+          setAssetModels(modelsData);
         } catch (err) {
-          setError('Failed to load users or locations.');
+          setError('Failed to load data.');
         }
       };
       fetchData();
@@ -77,15 +78,41 @@ export default function AddAssetModal({ open, onClose, onAssetAdded }: AddAssetM
     setError(null);
 
     try {
-      await assetsAPI.createAsset(formData);
+      const status = (formData.assigned_user_id && formData.location_id) ? 'In-service' : 'Retired';
+      const assetData = {
+        asset_type: formData.asset_type,
+        asset_make: formData.asset_make,
+        asset_model: formData.asset_model,
+        asset_tag: formData.tag_no,
+        tag_no: formData.tag_no,
+        os_version: formData.os_version,
+        serial_number: formData.serial_number,
+        asset_status: status,
+        location: formData.location_id,
+        user: formData.assigned_user_id
+      };
+      await assetsAPI.createAsset(assetData);
       onAssetAdded();
       onClose();
+      setFormData({
+        asset_type: '',
+        asset_make: '',
+        asset_model: '',
+        tag_no: '',
+        serial_number: '',
+        assigned_user_id: '',
+        location_id: '',
+        os_version: '',
+      });
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to add asset.');
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to add asset.';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setLoading(false);
     }
   };
+
+  const showOSVersion = ['Desktop', 'Laptop'].includes(formData.asset_type);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -95,73 +122,83 @@ export default function AddAssetModal({ open, onClose, onAssetAdded }: AddAssetM
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField
-          name="name"
-          label="Asset Name"
+          select
+          name="asset_type"
+          label="Asset Type"
+          value={formData.asset_type}
+          onChange={handleChange}
+          fullWidth
+          required
+          sx={{ mb: 2 }}
+        >
+          {[...new Set(assetModels.map((model: any) => model.asset_type))].map((type) => (
+            <MenuItem key={type} value={type}>
+              {type}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Autocomplete
+          freeSolo
+          options={[...new Set(assetModels.filter((model: any) => model.asset_type === formData.asset_type).map((model: any) => model.asset_make))]}
+          value={formData.asset_make}
+          onChange={(event, newValue) => setFormData({...formData, asset_make: newValue || ''})}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              name="asset_make"
+              label="Asset Make"
+              required
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+          )}
+        />
+        <Autocomplete
+          freeSolo
+          options={assetModels
+            .filter((model: any) => 
+              model.asset_type === formData.asset_type && 
+              model.asset_make === formData.asset_make &&
+              model.model
+            )
+            .map((model: any) => model.model)
+            .filter(Boolean)
+          }
+          value={formData.asset_model}
+          onChange={(event, newValue) => setFormData({...formData, asset_model: newValue || ''})}
+          onInputChange={(event, newInputValue) => setFormData({...formData, asset_model: newInputValue})}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              name="asset_model"
+              label="Asset Model"
+              required
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+          )}
+        />
+        <TextField
+          name="tag_no"
+          label="Tag No (Optional)"
+          value={formData.tag_no}
+          onChange={handleChange}
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          name="serial_number"
+          label="Serial Number"
+          value={formData.serial_number}
           onChange={handleChange}
           fullWidth
           required
           sx={{ mb: 2 }}
         />
-        <TextField
-          name="asset_tag"
-          label="Asset Tag"
-          onChange={handleChange}
-          fullWidth
-          required
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          select
-          name="category"
-          label="Category"
-          value={formData.category}
-          onChange={handleChange}
-          fullWidth
-          required
-          sx={{ mb: 2 }}
-        >
-          {Object.values(AssetCategory).map((cat) => (
-            <MenuItem key={cat} value={cat}>
-              {cat}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          name="status"
-          label="Status"
-          value={formData.status}
-          onChange={handleChange}
-          fullWidth
-          required
-          sx={{ mb: 2 }}
-        >
-          {Object.values(AssetStatus).map((status) => (
-            <MenuItem key={status} value={status}>
-              {status}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          name="assigned_user_id"
-          label="Assign to User (Optional)"
-          value={formData.assigned_user_id}
-          onChange={handleChange}
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="">None</MenuItem>
-          {users.map((user) => (
-            <MenuItem key={user.id} value={user.id}>
-              {user.name}
-            </MenuItem>
-          ))}
-        </TextField>
         <TextField
           select
           name="location_id"
-          label="Location (Optional)"
+          label="Assign Location (Optional)"
           value={formData.location_id}
           onChange={handleChange}
           fullWidth
@@ -174,6 +211,38 @@ export default function AddAssetModal({ open, onClose, onAssetAdded }: AddAssetM
             </MenuItem>
           ))}
         </TextField>
+        <Autocomplete
+          freeSolo
+          options={users
+            .filter(user => user.full_name || user.name)
+            .map((user) => user.full_name || user.name)
+            .filter(Boolean)
+          }
+          value={users.find(u => u.id === formData.assigned_user_id)?.full_name || users.find(u => u.id === formData.assigned_user_id)?.name || ''}
+          onChange={(event, newValue) => {
+            const user = users.find(u => (u.full_name || u.name) === newValue);
+            setFormData({...formData, assigned_user_id: user?.id || ''});
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              name="assigned_user_id"
+              label="Assign User (Optional)"
+              fullWidth
+              sx={{ mb: 2 }}
+            />
+          )}
+        />
+        {showOSVersion && (
+          <TextField
+            name="os_version"
+            label="OS Version"
+            value={formData.os_version}
+            onChange={handleChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+        )}
         <Button type="submit" variant="contained" disabled={loading} fullWidth>
           {loading ? <CircularProgress size={24} /> : 'Add Asset'}
         </Button>

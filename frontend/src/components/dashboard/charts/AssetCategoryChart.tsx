@@ -28,18 +28,18 @@ const AssetCategoryChart = () => {
   }, []);
 
   return (
-    <Box sx={{ height: 300 }}>
+    <Box sx={{ height: 350 }}>
       <Typography variant="h6" gutterBottom>
         Assets by Type
       </Typography>
-      <ResponsiveContainer width="100%" height="80%">
+      <ResponsiveContainer width="100%" height="90%">
         <PieChart>
           <Pie
             data={data}
             cx="50%"
-            cy="50%"
+            cy="40%"
             labelLine={false}
-            outerRadius={80}
+            outerRadius={60}
             fill="#8884d8"
             dataKey="count"
             nameKey="asset_type"
@@ -49,7 +49,13 @@ const AssetCategoryChart = () => {
             ))}
           </Pie>
           <Tooltip />
-          <Legend />
+          <Legend 
+            layout="vertical"
+            align="center"
+            verticalAlign="bottom"
+            iconType="rect"
+            wrapperStyle={{ paddingTop: '10px' }}
+          />
         </PieChart>
       </ResponsiveContainer>
     </Box>

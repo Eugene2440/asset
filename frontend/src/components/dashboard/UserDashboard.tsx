@@ -14,300 +14,155 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
-import { Asset, Transfer, User as UserType, Location } from '../../types/index.ts';
-import { assetsAPI, usersAPI, locationsAPI } from '../../services/api.ts';
+import {
+  Computer as ComputerIcon,
+  SwapHoriz as SwapHorizIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  People as PeopleIcon,
+  LocationOn as LocationIcon,
+} from '@mui/icons-material';
+import { Asset, Transfer } from '../../types/index.ts';
+import { assetsAPI, analyticsAPI } from '../../services/api.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
+import StatCard from './StatCard.tsx';
 
 export default function UserDashboard() {
   const { user } = useAuth();
-  const [userAssets, setUserAssets] = useState<Asset[]>([]);
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [userTransfers, setUserTransfers] = useState<Transfer[]>([]);
-  const [newTransfer, setNewTransfer] = useState({
-    asset_id: '',
-    reason: '',
-    notes: '',
-    to_user_id: '',
-    to_location_id: '',
-  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState(false);
-
-  const handleTransferChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewTransfer({
-      ...newTransfer,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleTransferSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setFormSuccess(false);
-
-    try {
-      const payload = {
-        asset_id: parseInt(newTransfer.asset_id),
-        reason: newTransfer.reason,
-        notes: newTransfer.notes || undefined,
-        to_user_id: newTransfer.to_user_id ? parseInt(newTransfer.to_user_id) : undefined,
-        to_location_id: newTransfer.to_location_id ? parseInt(newTransfer.to_location_id) : undefined,
-      };
-      await assetsAPI.createTransfer(payload);
-      setFormSuccess(true);
-      setNewTransfer({
-        asset_id: '',
-        reason: '',
-        notes: '',
-        to_user_id: '',
-        to_location_id: '',
-      });
-      if (user) {
-        const transfersData = await assetsAPI.getTransfers({ userId: user.id });
-        setUserTransfers(transfersData);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to submit transfer request');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    const fetchUserSpecificData = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
 
       setLoading(true);
       try {
-        const assetsData = await assetsAPI.getAssets({ assigned_user_id: user.id });
-        setUserAssets(assetsData.assets);
+        // Get system-wide stats like admin dashboard
+        const statsData = await analyticsAPI.getDashboardStats();
+        setStats(statsData);
 
-        const usersData = await usersAPI.getUsers();
-        setUsers(usersData);
-        const locationsData = await locationsAPI.getLocations();
-        setLocations(locationsData);
-
-        const transfersData = await assetsAPI.getTransfers({ userId: user.id });
+        // Only get transfers initiated by this user
+        const transfersData = await assetsAPI.getTransfers();
         setUserTransfers(transfersData);
       } catch (err: any) {
-        setError(err.response?.data?.detail || 'Failed to load user data');
+        setError(err.response?.data?.detail || 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserSpecificData();
+    fetchUserData();
   }, [user]);
 
-  if (loading) {
+  if (loading || !stats) {
     return (
       <Box 
         display="flex" 
         justifyContent="center" 
         alignItems="center" 
-        minHeight="200px"
+        minHeight="400px"
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: 2,
-          color: 'white'
+          background: '#ffffff'
         }}
       >
-        <CircularProgress sx={{ color: 'white' }} />
+        <CircularProgress sx={{ color: '#1976d2' }} />
       </Box>
     );
   }
 
-  return (
-    <Box sx={{ 
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      minHeight: '100vh',
-      p: 3,
-      borderRadius: 2
-    }}>
-      <Box sx={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: 3,
-        p: 4,
-        mb: 4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
-      }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
-            color: 'white',
-            fontWeight: 700,
-            textAlign: 'center',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}
-        >
-          Welcome, {user?.name}
-        </Typography>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            color: 'rgba(255,255,255,0.8)',
-            textAlign: 'center',
-            mt: 1,
-            fontWeight: 300
-          }}
-        >
-          Manage Your Assets & Transfers
-        </Typography>
-      </Box>
-      
-      <Paper sx={{ 
-        p: 4, 
-        mt: 3,
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-        borderRadius: 3
-      }}>
-        <Typography 
-          variant="h5" 
-          gutterBottom
-          sx={{ 
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mb: 3
-          }}
-        >
-          Your Asset Transfers
-        </Typography>
-        <Box 
-          component="form" 
-          onSubmit={handleTransferSubmit} 
-          sx={{ 
-            mt: 2, 
-            mb: 4, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: 2,
-            p: 3,
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-            borderRadius: 2,
-            border: '1px solid #e0e0e0'
-          }}
-        >
-          <Typography 
-            variant="h6"
-            sx={{ 
-              fontWeight: 600,
-              color: '#333',
-              mb: 1
-            }}
-          >
-            Request New Asset Transfer
-          </Typography>
-          {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
-          {formSuccess && <Alert severity="success" sx={{ borderRadius: 2 }}>Transfer request submitted successfully!</Alert>}
-          <TextField
-            select
-            label="Asset"
-            name="asset_id"
-            value={newTransfer.asset_id}
-            onChange={handleTransferChange}
-            fullWidth
-            required
-          >
-            {userAssets.map((asset) => (
-              <MenuItem key={asset.id} value={asset.id}>
-                {asset.name} ({asset.asset_tag})
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="Reason"
-            name="reason"
-            value={newTransfer.reason}
-            onChange={handleTransferChange}
-            fullWidth
-            required
-          />
-          <TextField
-            label="Notes (Optional)"
-            name="notes"
-            value={newTransfer.notes}
-            onChange={handleTransferChange}
-            fullWidth
-            multiline
-            rows={2}
-          />
-          <TextField
-            select
-            label="Transfer To User (Optional)"
-            name="to_user_id"
-            value={newTransfer.to_user_id}
-            onChange={handleTransferChange}
-            fullWidth
-          >
-            <MenuItem value="">None</MenuItem>
-            {users.map((u) => (
-              <MenuItem key={u.id} value={u.id}>
-                {u.name}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="Transfer To Location (Optional)"
-            name="to_location_id"
-            value={newTransfer.to_location_id}
-            onChange={handleTransferChange}
-            fullWidth
-          >
-            <MenuItem value="">None</MenuItem>
-            {locations.map((loc) => (
-              <MenuItem key={loc.id} value={loc.id}>
-                {loc.name}
-              </MenuItem>
-            ))}
-          </TextField>
-          <Button 
-            type="submit" 
-            variant="contained" 
-            color="primary" 
-            disabled={loading}
-            sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: 2,
-              py: 1.5,
-              fontWeight: 600,
-              textTransform: 'none',
-              fontSize: '1rem',
-              boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)'
-              },
-              '&:disabled': {
-                background: '#ccc',
-                transform: 'none',
-                boxShadow: 'none'
-              }
-            }}
-          >
-            Request Transfer
-          </Button>
-        </Box>
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mt: 2 }}>
+        {error}
+      </Alert>
+    );
+  }
 
+  const myPendingTransfersCount = userTransfers.filter(transfer => transfer.status === 'PENDING').length;
+  const myTransfersCount = userTransfers.length;
+
+  return (
+    <Box sx={{ background: '#ffffff' }}>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          color: '#666',
+          textAlign: 'center',
+          mb: 4,
+          fontWeight: 400
+        }}
+      >
+        Welcome, {user?.name} - IT Asset Management
+      </Typography>
+      
+      <Box sx={{ 
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: 3,
+        mb: 4
+      }}>
+        <StatCard
+          title="Total Assets"
+          value={stats.total_assets}
+          icon={<ComputerIcon />}
+          color="#1976d2"
+        />
+        <StatCard
+          title="Active Assets"
+          value={stats.active_assets}
+          icon={<CheckCircleIcon />}
+          color="#2e7d32"
+        />
+        <StatCard
+          title="Inactive Assets"
+          value={stats.inactive_assets}
+          icon={<WarningIcon />}
+          color="#f57c00"
+        />
+        <StatCard
+          title="Pending Transfers"
+          value={stats.pending_transfers}
+          icon={<SwapHorizIcon />}
+          color="#ed6c02"
+        />
+        <StatCard
+          title="Total Users"
+          value={stats.total_users}
+          icon={<PeopleIcon />}
+          color="#9c27b0"
+        />
+        <StatCard
+          title="Total Locations"
+          value={stats.total_locations}
+          icon={<LocationIcon />}
+          color="#d32f2f"
+        />
+      </Box>
+
+
+      <Card sx={{ 
+        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+        borderRadius: 3,
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <CardContent sx={{ p: 3 }}>
         <Typography 
           variant="h6" 
           sx={{ 
-            mt: 4, 
             mb: 3,
             fontWeight: 600,
             color: '#333'
           }}
         >
-          Your Pending Transfer Requests
+          My Transfer Requests
         </Typography>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="100px">
@@ -317,9 +172,9 @@ export default function UserDashboard() {
           <Box sx={{ 
             textAlign: 'center', 
             p: 4,
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            background: '#f8f9fa',
             borderRadius: 2,
-            border: '1px solid #e0e0e0'
+            border: '1px solid rgba(0,0,0,0.08)'
           }}>
             <Typography sx={{ color: '#666', fontSize: '1.1rem' }}>
               No transfer requests found.
@@ -329,13 +184,13 @@ export default function UserDashboard() {
           <TableContainer 
             component={Paper}
             sx={{
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               borderRadius: 2,
               overflow: 'hidden'
             }}
           >
             <Table>
-              <TableHead sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+              <TableHead sx={{ background: '#1976d2' }}>
                 <TableRow>
                   <TableCell sx={{ color: 'white', fontWeight: 600 }}>ID</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 600 }}>Asset</TableCell>
@@ -351,26 +206,26 @@ export default function UserDashboard() {
                   <TableRow 
                     key={transfer.id}
                     sx={{
-                      backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white',
                       '&:hover': {
-                        backgroundColor: '#e3f2fd'
+                        backgroundColor: '#f5f5f5'
                       }
                     }}
                   >
                     <TableCell>{transfer.id}</TableCell>
-                    <TableCell>{userAssets.find(a => a.id === transfer.asset_id)?.name || 'N/A'}</TableCell>
+                    <TableCell>{transfer.asset?.asset_type || 'N/A'}</TableCell>
                     <TableCell>{transfer.reason}</TableCell>
                     <TableCell>{transfer.status}</TableCell>
                     <TableCell>{transfer.requested_at ? new Date(transfer.requested_at).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>{users.find(u => u.id === transfer.to_user_id)?.name || 'N/A'}</TableCell>
-                    <TableCell>{locations.find(loc => loc.id === transfer.to_location_id)?.name || 'N/A'}</TableCell>
+                    <TableCell>{transfer.to_user?.name || 'N/A'}</TableCell>
+                    <TableCell>{transfer.to_location?.name || 'N/A'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
         )}
-      </Paper>
+        </CardContent>
+      </Card>
     </Box>
   );
 }

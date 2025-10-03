@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Box,
@@ -14,11 +14,13 @@ import {
   TextField,
 } from '@mui/material';
 import { locationsAPI } from '../../services/api.ts';
+import { Location } from '../../types/index.ts';
 
-interface AddLocationModalProps {
+interface EditLocationModalProps {
   open: boolean;
   onClose: () => void;
-  onLocationAdded: () => void;
+  onLocationUpdated: () => void;
+  location: Location | null;
 }
 
 const modalStyle = {
@@ -36,18 +38,23 @@ const modalStyle = {
 const mainLocations = ['ACT', 'LC1', 'LC2', 'ICDN', 'KIBARANI', 'SHIMANZI'];
 const departments = ['Main office', 'WH1', 'WH2', 'WH3', 'WH4', 'Operations', 'Acceptance', 'Security', 'IT', 'HR', 'Finance', 'Procurement'];
 
-export default function AddLocationModal({ open, onClose, onLocationAdded }: AddLocationModalProps) {
+export default function EditLocationModal({ open, onClose, onLocationUpdated, location }: EditLocationModalProps) {
   const [mainLocation, setMainLocation] = useState('');
   const [department, setDepartment] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
+  useEffect(() => {
+    if (location && open) {
+      const [main, ...deptParts] = location.name.split(' ');
+      setMainLocation(main);
+      setDepartment(deptParts.join(' '));
+    }
+  }, [location, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mainLocation || !department) {
+    if (!mainLocation || !department || !location) {
       setError('Please select both main location and department');
       return;
     }
@@ -56,19 +63,14 @@ export default function AddLocationModal({ open, onClose, onLocationAdded }: Add
     setError(null);
 
     try {
-      const locationData = {
+      await locationsAPI.updateLocation(location.id, {
         name: `${mainLocation} ${department}`,
-      };
-      await locationsAPI.createLocation(locationData);
-      onLocationAdded();
+      });
+      onLocationUpdated();
       onClose();
-      // Reset form
-      setMainLocation('');
-      setDepartment('');
-
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to add location.';
-      setError(typeof errorMessage === 'string' ? errorMessage : 'Failed to add location.');
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to update location.';
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Failed to update location.');
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,7 @@ export default function AddLocationModal({ open, onClose, onLocationAdded }: Add
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle} component="form" onSubmit={handleSubmit}>
         <Typography variant="h6" component="h2" gutterBottom>
-          Add New Location
+          Edit Location
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <FormControl fullWidth required sx={{ mb: 2 }}>
@@ -113,12 +115,11 @@ export default function AddLocationModal({ open, onClose, onLocationAdded }: Add
         />
         {mainLocation && department && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            Location will be created as: <strong>{mainLocation} {department}</strong>
+            Location will be updated to: <strong>{mainLocation} {department}</strong>
           </Alert>
         )}
-
         <Button type="submit" variant="contained" disabled={loading} fullWidth>
-          {loading ? <CircularProgress size={24} /> : 'Add Location'}
+          {loading ? <CircularProgress size={24} /> : 'Update Location'}
         </Button>
       </Box>
     </Modal>

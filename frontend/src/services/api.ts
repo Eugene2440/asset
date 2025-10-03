@@ -23,6 +23,20 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Response interceptor to handle token expiration
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post('/api/auth/login', credentials);
@@ -49,6 +63,18 @@ export const analyticsAPI = {
   },
   getAssetsByStatus: async (): Promise<any> => {
     const response = await apiClient.get('/api/analytics/assets/by-status');
+    return response.data;
+  },
+  getRecentActivities: async (limit: number = 10): Promise<any> => {
+    const response = await apiClient.get(`/api/analytics/recent-activities?limit=${limit}`);
+    return response.data;
+  },
+  getAssetsByLocation: async (): Promise<any> => {
+    const response = await apiClient.get('/api/analytics/assets/by-location');
+    return response.data;
+  },
+  getMonthlyTransfers: async (): Promise<any> => {
+    const response = await apiClient.get('/api/analytics/transfers/monthly');
     return response.data;
   },
 };

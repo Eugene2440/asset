@@ -16,6 +16,7 @@ import TransfersPage from './pages/TransfersPage.tsx';
 import TransferDetailsPage from './pages/TransferDetailsPage.tsx';
 import LocationsPage from './pages/LocationsPage.tsx';
 import AssetDetailPage from './pages/AssetDetailPage.tsx';
+import UsersPage from './pages/UsersPage.tsx';
 
 const theme = createTheme({
   palette: {
@@ -130,13 +131,14 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/analytics"
+        path="/users"
         element={
           <ProtectedRoute>
-            <div>Analytics Page - Coming Soon</div>
+            <UsersPage />
           </ProtectedRoute>
         }
       />
+
     </Routes>
   );
 }

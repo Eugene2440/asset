@@ -45,12 +45,10 @@ export default function DashboardPage() {
         alignItems="center" 
         minHeight="400px"
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: 2,
-          color: 'white'
+          background: '#ffffff'
         }}
       >
-        <CircularProgress sx={{ color: 'white' }} />
+        <CircularProgress sx={{ color: '#1976d2' }} />
       </Box>
     );
   }
@@ -65,10 +63,9 @@ export default function DashboardPage() {
 
   return (
     <Box sx={{ 
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      background: '#ffffff',
       minHeight: '100vh',
-      p: 3,
-      borderRadius: 2
+      p: 3
     }}>
       {isAdmin && stats ? (
         <AdminDashboard

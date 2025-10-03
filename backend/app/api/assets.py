@@ -92,14 +92,26 @@ async def _get_populated_assets_optimized(asset_docs: list, db) -> list:
             if user_data:
                 asset['assigned_user'] = user_data
 
-        # Populate model data from cache
+        # Handle asset_model field - keep separate fields
         if asset.get('asset_model'):
-            model_id = asset['asset_model'] if isinstance(asset['asset_model'], str) else asset['asset_model'].id
-            model_data = models_cache.get(model_id)
-            if model_data:
-                asset['asset_type'] = model_data.get('asset_type')
-                asset['asset_make'] = model_data.get('asset_make')
-                asset['model'] = model_data.get('asset_model')
+            if isinstance(asset['asset_model'], str):
+                # Direct string value - use as model only
+                asset['model'] = asset['asset_model']
+                # Keep existing asset_type and asset_make if they exist
+            else:
+                # Reference to asset_models collection
+                model_id = asset['asset_model'].id
+                model_data = models_cache.get(model_id)
+                if model_data:
+                    # Only set if not already present as direct fields
+                    if not asset.get('asset_type'):
+                        asset['asset_type'] = model_data.get('asset_type')
+                    if not asset.get('asset_make'):
+                        asset['asset_make'] = model_data.get('asset_make')
+                    asset['model'] = model_data.get('asset_model')
+        
+        # Debug: Print asset data to see what's being returned
+        print(f"Asset {asset.get('id', 'unknown')}: type={asset.get('asset_type')}, make={asset.get('asset_make')}, model={asset.get('model')}")
 
         # Populate status from cache
         if asset.get('asset_status'):
@@ -157,8 +169,11 @@ async def _get_populated_assets(asset_docs: list, db) -> list:
             model_ref_path = db.collection('asset_models').document(asset['asset_model']).path
             if model_ref_path in referenced_docs_map:
                 model_data = referenced_docs_map[model_ref_path]
-                asset['asset_type'] = model_data.get('asset_type')
-                asset['asset_make'] = model_data.get('asset_make')
+                # Only set if not already present as direct fields
+                if not asset.get('asset_type'):
+                    asset['asset_type'] = model_data.get('asset_type')
+                if not asset.get('asset_make'):
+                    asset['asset_make'] = model_data.get('asset_make')
                 asset['model'] = model_data.get('asset_model')
 
         if asset.get('asset_status') and isinstance(asset.get('asset_status'), str):
@@ -173,12 +188,16 @@ async def _get_populated_assets(asset_docs: list, db) -> list:
 
 # Pydantic models
 class AssetCreate(BaseModel):
+    asset_type: str
+    asset_make: str
     asset_model: str
+    asset_tag: str
+    tag_no: str
     asset_status: str
     location: str
-    serial_number: str
-    tag_no: str
     user: str
+    serial_number: str
+    os_version: Optional[str] = None
 
 class AssetUpdate(BaseModel):
     asset_model: Optional[str] = None
@@ -229,22 +248,22 @@ async def create_asset(
     if existing_asset:
         raise HTTPException(status_code=400, detail="Asset tag already exists")
 
-    # Check if serial number already exists (if provided)
-    if asset_data.serial_number:
-        existing_serial = assets_ref.where('serial_number', '==', asset_data.serial_number).limit(1).get()
-        if existing_serial:
-            raise HTTPException(status_code=400, detail="Serial number already exists")
+    # Check if serial number already exists (used as document ID)
+    asset_ref = db.collection('assets').document(asset_data.serial_number)
+    if asset_ref.get().exists:
+        raise HTTPException(status_code=400, detail="Serial number already exists")
 
     asset_dict = asset_data.dict()
     asset_dict['created_at'] = datetime.utcnow()
     asset_dict['updated_at'] = datetime.utcnow()
 
-    update_time, asset_ref = db.collection('assets').add(asset_dict)
+    asset_ref.set(asset_dict)
 
     created_asset = asset_ref.get()
-    response = created_asset.to_dict()
-    response['id'] = created_asset.id
-    return response
+    populated_assets = await _get_populated_assets_optimized([created_asset], db)
+    if not populated_assets:
+        raise HTTPException(status_code=500, detail="Failed to create asset")
+    return populated_assets[0]
 
 @router.get("/{asset_id}", response_model=AssetResponse)
 async def get_asset(

@@ -8,26 +8,16 @@ from enum import Enum
 
 router = APIRouter()
 
-class DivisionEnum(str, Enum):
-    act = "Air Cargo Terminal(ACT)"
-    lc1 = "Logistics Center 1(LC1)"
-    lc2 = "Logistics Center 2(LC2)"
-    shimanzi = "Shimanzi"
-    kibarani = "Kibarani"
-
 # Pydantic models
 class LocationCreate(BaseModel):
     name: str
-    division: DivisionEnum
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
-    division: Optional[DivisionEnum] = None
 
 class LocationResponse(BaseModel):
     id: str
     name: str
-    division: Optional[str] = None
     created_at: Optional[datetime] = None
 
 @router.get("/", response_model=List[LocationResponse])

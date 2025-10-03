@@ -45,7 +45,7 @@ async def get_users(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    if current_user.get("role") != "admin":
+    if current_user.get("role") not in ["admin", "regular"]:
         raise HTTPException(status_code=403, detail="Not authorized to view users")
 
     users_ref = db.collection('users')
@@ -147,22 +147,39 @@ async def create_user(
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to create users")
 
-    existing_user = db.collection('users').where('email', '==', user_data.email).limit(1).get()
-    if existing_user:
+    # Check in both collections for existing email
+    existing_user_it = db.collection('it_users').where('email', '==', user_data.email).limit(1).get()
+    existing_user_regular = db.collection('users').where('email', '==', user_data.email).limit(1).get()
+    
+    if existing_user_it or existing_user_regular:
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    user_dict = user_data.dict()
-    user_dict['created_at'] = datetime.utcnow()
-    user_dict['is_active'] = True
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    user_dict = {
+        'name': user_data.name,
+        'email': user_data.email,
+        'password': pwd_context.hash(user_data.password),
+        'role': user_data.role,
+        'location_id': user_data.location_id,
+        'created_at': datetime.utcnow(),
+        'is_active': True,
+        'username': user_data.email.split('@')[0]
+    }
 
-    # This is a placeholder for password hashing
-    user_dict['password'] = f"hashed_{user_data.password}"
-
-    update_time, user_ref = db.collection('users').add(user_dict)
+    # Add to it_users collection for authentication
+    update_time, user_ref = db.collection('it_users').add(user_dict)
+    
+    # Also add to users collection for compatibility
+    user_dict_copy = user_dict.copy()
+    user_dict_copy.pop('password', None)  # Don't store password in users collection
+    db.collection('users').document(user_ref.id).set(user_dict_copy)
 
     created_user = user_ref.get()
     response = created_user.to_dict()
     response['id'] = created_user.id
+    response.pop('password', None)  # Don't return password
     return response
 
 

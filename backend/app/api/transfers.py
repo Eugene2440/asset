@@ -5,6 +5,7 @@ from app.api.auth import get_current_user
 from pydantic import BaseModel
 from datetime import datetime
 from google.cloud.firestore_v1.document import DocumentReference
+from google.cloud.firestore_v1 import Query as FirestoreQuery
 from app.api.assets import _get_populated_assets
 
 router = APIRouter()
@@ -78,7 +79,9 @@ async def get_transfers(
     if asset_id:
         query = query.where('asset_id', '==', asset_id)
     
+    # Get all transfers first, then sort in Python to avoid index requirement
     all_transfers_docs = list(query.stream())
+    all_transfers_docs.sort(key=lambda x: x.to_dict().get('requested_at', datetime.min), reverse=True)
 
     transfers_list = []
     for doc in all_transfers_docs:
@@ -240,20 +243,37 @@ async def create_transfer_request(
     
     asset_data = asset.to_dict()
 
-    transfer_dict = transfer_data.dict(exclude_unset=True)
-    transfer_dict['requester_id'] = current_user.get("id")
+    transfer_dict = {
+        'asset_id': transfer_data.asset_id,
+        'reason': transfer_data.reason,
+        'to_user_id': transfer_data.to_user_id,
+        'to_location_id': transfer_data.to_location_id,
+        'damage_report': transfer_data.damage_report,
+        'photo_url': transfer_data.photo_url,
+        'assigned_to_id': transfer_data.assigned_to_id,
+        'requester_id': current_user.get("id")
+    }
 
+    # Get from_user_id from asset
     from_user_ref = asset_data.get('user')
+    assigned_user_id = asset_data.get('assigned_user_id')
     if from_user_ref and isinstance(from_user_ref, DocumentReference):
         transfer_dict['from_user_id'] = from_user_ref.id
+    elif assigned_user_id:
+        transfer_dict['from_user_id'] = assigned_user_id
     else:
         transfer_dict['from_user_id'] = None
 
+    # Get from_location_id from asset
     from_location_ref = asset_data.get('location')
+    location_id = asset_data.get('location_id')
     if from_location_ref and isinstance(from_location_ref, DocumentReference):
         transfer_dict['from_location_id'] = from_location_ref.id
+    elif location_id:
+        transfer_dict['from_location_id'] = location_id
     else:
         transfer_dict['from_location_id'] = None
+    
     transfer_dict['status'] = "PENDING"
     transfer_dict['requested_at'] = datetime.utcnow()
 
@@ -301,7 +321,22 @@ async def update_transfer(
     elif transfer_data.status == "COMPLETED":
         update_data['completed_at'] = datetime.utcnow()
         
-        # Update asset assignment
+        # Update asset assignment only when completed (after approval)
+        transfer_doc = transfer.to_dict()
+        asset_ref = db.collection('assets').document(transfer_doc.get('asset_id'))
+        asset = asset_ref.get()
+        if asset.exists:
+            asset_update = {}
+            if transfer_doc.get('to_user_id'):
+                asset_update['assigned_user_id'] = transfer_doc.get('to_user_id')
+            if transfer_doc.get('to_location_id'):
+                asset_update['location_id'] = transfer_doc.get('to_location_id')
+            if asset_update:
+                asset_ref.update(asset_update)
+    elif transfer_data.status == "APPROVED":
+        update_data['approved_at'] = datetime.utcnow()
+        
+        # Update asset assignment when approved
         transfer_doc = transfer.to_dict()
         asset_ref = db.collection('assets').document(transfer_doc.get('asset_id'))
         asset = asset_ref.get()

@@ -33,8 +33,9 @@ def create_it_users():
         db = get_firestore_db()
         it_users_ref = db.collection('it_users')
 
-        # Hash a simple password
-        hashed_password = pwd_context.hash("password123")
+        # Hash passwords
+        hashed_password_123 = pwd_context.hash("password123")
+        hashed_password = pwd_context.hash("password")
 
         # Admin User
         admin_email = "admin@gmail.com"
@@ -43,9 +44,22 @@ def create_it_users():
             'name': 'Eugine Baraka',
             'email': admin_email,
             'role': 'admin',
-            'password': hashed_password
+            'password': hashed_password_123
         }, merge=True)
         print(f"Successfully created or updated admin user: {admin_email}")
+
+        # New Asset Admin User
+        asset_admin_email = "assetadmin@gmail.com"
+        asset_admin_doc = it_users_ref.document(asset_admin_email)
+        asset_admin_doc.set({
+            'name': 'Asset Admin',
+            'email': asset_admin_email,
+            'role': 'admin',
+            'password': hashed_password,
+            'is_active': True,
+            'created_at': firestore.SERVER_TIMESTAMP
+        }, merge=True)
+        print(f"Successfully created or updated asset admin user: {asset_admin_email}")
 
         # Regular IT User
         regular_user_email = "user@gmail.com"
@@ -54,9 +68,22 @@ def create_it_users():
             'name': 'Morine Mainaa',
             'email': regular_user_email,
             'role': 'regular',
-            'password': hashed_password
+            'password': hashed_password_123
         }, merge=True)
         print(f"Successfully created or updated regular IT user: {regular_user_email}")
+
+        # New Regular User
+        new_regular_email = "regular@gmail.com"
+        new_regular_doc = it_users_ref.document(new_regular_email)
+        new_regular_doc.set({
+            'name': 'Regular User',
+            'email': new_regular_email,
+            'role': 'regular',
+            'password': hashed_password,
+            'is_active': True,
+            'created_at': firestore.SERVER_TIMESTAMP
+        }, merge=True)
+        print(f"Successfully created or updated regular user: {new_regular_email}")
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")

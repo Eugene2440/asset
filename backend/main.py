@@ -28,7 +28,7 @@ async def startup_event():
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Explicitly allow React dev server
+    allow_origins=settings.cors_origins_list,  # Allow all specified origins from .env
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

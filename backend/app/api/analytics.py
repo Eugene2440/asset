@@ -39,13 +39,20 @@ class MonthlyTransferReport(BaseModel):
     year: int
     transfer_count: int
 
+class ActivityReport(BaseModel):
+    id: str
+    type: str
+    description: str
+    timestamp: str
+    user: str
+
 @router.get("/dashboard", response_model=DashboardStats)
 async def get_dashboard_stats(
     db = Depends(get_firestore_db),
     current_user: dict = Depends(get_current_user)
 ):
-    # Only admins can view analytics
-    if current_user.get("role") != "admin":
+    # Both admins and regular IT users can view analytics
+    if current_user.get("role") not in ["admin", "regular"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Inefficient for large datasets. Consider using Cloud Functions for aggregation.
@@ -259,3 +266,58 @@ async def get_user_asset_allocation(
         }
         for user_id, count in asset_counts.items()
     ]
+
+@router.get("/recent-activities", response_model=List[ActivityReport])
+async def get_recent_activities(
+    limit: int = 10,
+    db = Depends(get_firestore_db),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    activities = []
+    
+    # Get recent transfers
+    transfers = db.collection('transfers').order_by('requested_at', direction='DESCENDING').limit(5).stream()
+    for transfer in transfers:
+        transfer_data = transfer.to_dict()
+        activities.append({
+            'id': transfer.id,
+            'type': 'asset_transferred',
+            'description': f"Asset {transfer_data.get('asset_tag', 'Unknown')} transferred",
+            'timestamp': transfer_data.get('requested_at', datetime.utcnow()).strftime('%Y-%m-%d %H:%M:%S'),
+            'user': transfer_data.get('requested_by_name', 'Unknown')
+        })
+    
+    # Get recent assets (created in last 30 days)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    assets = db.collection('assets').where('created_at', '>=', thirty_days_ago).order_by('created_at', direction='DESCENDING').limit(5).stream()
+    for asset in assets:
+        asset_data = asset.to_dict()
+        activities.append({
+            'id': asset.id,
+            'type': 'asset_added',
+            'description': f"New {asset_data.get('asset_type', 'asset')} added to inventory",
+            'timestamp': asset_data.get('created_at', datetime.utcnow()).strftime('%Y-%m-%d %H:%M:%S'),
+            'user': 'Admin'
+        })
+    
+    # Sort by timestamp and limit
+    activities.sort(key=lambda x: x['timestamp'], reverse=True)
+    activities = activities[:limit]
+    
+    # Convert to relative time
+    for activity in activities:
+        timestamp = datetime.strptime(activity['timestamp'], '%Y-%m-%d %H:%M:%S')
+        diff = datetime.utcnow() - timestamp
+        if diff.days > 0:
+            activity['timestamp'] = f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+        elif diff.seconds > 3600:
+            hours = diff.seconds // 3600
+            activity['timestamp'] = f"{hours} hour{'s' if hours > 1 else ''} ago"
+        else:
+            minutes = diff.seconds // 60
+            activity['timestamp'] = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+    
+    return [ActivityReport(**activity) for activity in activities]
